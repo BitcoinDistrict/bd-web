@@ -28,7 +28,10 @@ services:
       - bd-network
 
   astro:
-    build: ./site
+    build:
+      context: ./site
+      dockerfile: Dockerfile
+      target: development
     ports:
       - "4321:4321"  # Astro dev server runs on 4321
     environment:

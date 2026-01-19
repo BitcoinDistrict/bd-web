@@ -1,0 +1,120 @@
+# Bitcoin District Production Site
+# Caddy v2 configuration with automatic HTTPS
+
+staging.bitcoindistrict.org {
+    # Automatic HTTPS via Let's Encrypt
+    tls {
+        email admin@bitcoindistrict.org
+    }
+
+    # Enable gzip compression
+    encode gzip
+
+    # Access logging with rotation
+    log {
+        output file /var/log/caddy/access.log {
+            roll_size 100mb
+            roll_keep 5
+            roll_keep_for 720h
+        }
+        format json
+        level INFO
+    }
+
+    # Directus admin UI and API
+    # All requests to /admin/* route to Directus
+    handle_path /admin* {
+        reverse_proxy http://localhost:8055 {
+            # Forward real client information
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-Host {host}
+            
+            # Timeouts for longer operations
+            transport http {
+                dial_timeout 10s
+                response_header_timeout 60s
+            }
+        }
+    }
+
+    # Directus assets (images, files, etc.)
+    handle_path /assets* {
+        reverse_proxy http://localhost:8055 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            
+            # Cache static assets
+            header Cache-Control "public, max-age=31536000, immutable"
+        }
+    }
+
+    # Main Astro site - all other paths
+    handle {
+        reverse_proxy http://localhost:4321 {
+            # Forward real client information
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-Host {host}
+            
+            # Health check
+            health_uri /
+            health_interval 30s
+            health_timeout 5s
+            
+            # Timeouts
+            transport http {
+                dial_timeout 10s
+                response_header_timeout 30s
+            }
+        }
+    }
+
+    # Security headers
+    header {
+        # HSTS (HTTP Strict Transport Security)
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        
+        # Prevent clickjacking
+        X-Frame-Options "SAMEORIGIN"
+        
+        # Prevent MIME sniffing
+        X-Content-Type-Options "nosniff"
+        
+        # XSS Protection
+        X-XSS-Protection "1; mode=block"
+        
+        # Referrer Policy
+        Referrer-Policy "strict-origin-when-cross-origin"
+        
+        # Permissions Policy (formerly Feature Policy)
+        Permissions-Policy "geolocation=(), microphone=(), camera=()"
+        
+        # Remove server identification
+        -Server
+    }
+
+    # Error pages
+    handle_errors {
+        @5xx expression `{err.status_code} >= 500 && {err.status_code} < 600`
+        handle @5xx {
+            respond "Service temporarily unavailable. Please try again later." 503
+        }
+        
+        @4xx expression `{err.status_code} >= 400 && {err.status_code} < 500`
+        handle @4xx {
+            respond "The requested resource was not found." 404
+        }
+    }
+}
+
+# Redirect www to non-www (if needed in future)
+# www.staging.bitcoindistrict.org {
+#     redir https://staging.bitcoindistrict.org{uri} permanent
+# }
