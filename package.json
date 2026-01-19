@@ -1,0 +1,14 @@
+{
+  "type": "module",
+  "scripts": {
+    "import-events": "node scripts/import-rss-events.js"
+  },
+  "dependencies": {
+    "directus-extension-wpslug-interface": "^1.1.0",
+    "@directus/sdk": "^17.0.1",
+    "rss-parser": "^3.13.0",
+    "cheerio": "^1.0.0",
+    "dayjs": "^1.11.13",
+    "dotenv": "^16.4.5"
+  }
+}

@@ -1,0 +1,186 @@
+---
+import Layout from "../layouts/Layout.astro";
+import PageHeader from "../components/PageHeader.astro";
+import { getGlobals } from "../lib/directus";
+import { marked } from "marked";
+
+const cmsEnabled = import.meta.env.PUBLIC_CMS_ENABLED === "true";
+
+let privacyContent: string = "";
+let error: string | null = null;
+
+if (cmsEnabled) {
+  const result = await getGlobals();
+  if (result.error) {
+    error = result.error;
+    console.error("[Privacy Page] Error fetching globals:", result.error);
+  } else if (result.data?.privacy_policy) {
+    // Convert markdown to HTML
+    privacyContent = marked(result.data.privacy_policy) as string;
+    console.log("[Privacy Page] Loaded privacy policy content");
+  } else {
+    console.warn("[Privacy Page] No privacy policy content found in Globals");
+  }
+} else {
+  console.warn("[Privacy Page] CMS is disabled");
+}
+
+const seo = {
+  title: "Privacy Policy | Bitcoin District",
+  description: "Privacy Policy for Bitcoin District",
+};
+---
+
+<Layout seo={seo}>
+  <main class="privacy-page">
+    <PageHeader title="Privacy Policy" size="large" />
+
+    {error ? (
+      <section class="error-message" aria-live="polite">
+        <p>
+          {error === "CMS_NOT_CONFIGURED" 
+            ? "Content management system is not configured." 
+            : error === "CMS_UNAVAILABLE"
+            ? "Unable to load content at this time. Please try again later."
+            : "An error occurred loading the content."}
+        </p>
+      </section>
+    ) : !cmsEnabled ? (
+      <section class="cms-disabled">
+        <p>Content management is currently disabled. Please enable CMS to view this content.</p>
+      </section>
+    ) : !privacyContent ? (
+      <section class="empty-state">
+        <p>Privacy Policy content has not been configured yet.</p>
+      </section>
+    ) : (
+      <article class="content" set:html={privacyContent} />
+    )}
+  </main>
+</Layout>
+
+<style>
+  .privacy-page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 3rem 2rem;
+  }
+
+  .content {
+    font-size: 1.05rem;
+    line-height: 1.8;
+    color: #333;
+  }
+
+  .content :global(h2) {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin: 2.5rem 0 1rem 0;
+    color: #111;
+  }
+
+  .content :global(h3) {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin: 2rem 0 1rem 0;
+    color: #111;
+  }
+
+  .content :global(h4) {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 1.5rem 0 0.75rem 0;
+    color: #111;
+  }
+
+  .content :global(p) {
+    margin: 1rem 0;
+  }
+
+  .content :global(ul),
+  .content :global(ol) {
+    margin: 1rem 0;
+    padding-left: 2rem;
+  }
+
+  .content :global(li) {
+    margin: 0.5rem 0;
+  }
+
+  .content :global(a) {
+    color: #f7931a;
+    text-decoration: underline;
+  }
+
+  .content :global(a:hover) {
+    color: #d97706;
+  }
+
+  .content :global(strong) {
+    font-weight: 600;
+    color: #111;
+  }
+
+  .content :global(code) {
+    background: #f8f9fa;
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.25rem;
+    font-size: 0.9em;
+    font-family: monospace;
+  }
+
+  .content :global(pre) {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    overflow-x: auto;
+    margin: 1.5rem 0;
+  }
+
+  .content :global(pre code) {
+    background: none;
+    padding: 0;
+  }
+
+  .content :global(blockquote) {
+    border-left: 4px solid #f7931a;
+    padding-left: 1.5rem;
+    margin: 1.5rem 0;
+    color: #666;
+    font-style: italic;
+  }
+
+  .error-message,
+  .empty-state,
+  .cms-disabled {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #6c757d;
+    font-size: 1.1rem;
+    background: #f8f9fa;
+    border-radius: 0.75rem;
+  }
+
+  @media (max-width: 768px) {
+    .privacy-page {
+      padding: 2rem 1rem;
+    }
+
+    .content {
+      font-size: 1rem;
+    }
+
+    .content :global(h2) {
+      font-size: 1.5rem;
+    }
+
+    .content :global(h3) {
+      font-size: 1.25rem;
+    }
+
+    .content :global(ul),
+    .content :global(ol) {
+      padding-left: 1.5rem;
+    }
+  }
+</style>

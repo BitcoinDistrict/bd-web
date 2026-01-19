@@ -1,0 +1,217 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { getPageData, getPostData, getDirectusUrl } from "../lib/directus";
+import { Image } from "astro:assets";
+
+const cmsEnabled = import.meta.env.PUBLIC_CMS_ENABLED === "true";
+
+const { slug } = Astro.params;
+// Handle slug - it might be an array, string, or undefined
+let path = "/";
+if (slug) {
+  if (Array.isArray(slug)) {
+    path = `/${slug.join("/")}`;
+  } else {
+    path = `/${slug}`;
+  }
+}
+
+// Check if this is a blog post route
+let isBlogPost = false;
+let post = null;
+let pageData = null;
+let errorCode: string | null = null;
+
+if (!cmsEnabled) {
+  Astro.response.status = 404;
+} else if (path.startsWith("/blog/")) {
+  isBlogPost = true;
+  const postSlug = path.replace("/blog/", "");
+  const result = await getPostData(postSlug);
+  errorCode = result.error;
+  post = result.data;
+} else {
+  const result = await getPageData(path);
+  errorCode = result.error;
+  pageData = result.data;
+}
+
+if (errorCode) {
+  Astro.response.status = errorCode === "NOT_FOUND" ? 404 : 503;
+}
+
+const DIRECTUS_URL = getDirectusUrl();
+---
+
+{errorCode ? (
+  <Layout seo={{ title: "Content unavailable", description: "This page is temporarily unavailable." }}>
+    <main style="max-width: 900px; margin: 0 auto; padding: 2rem;">
+      {errorCode === "NOT_FOUND" ? (
+        <>
+          <h1>Not found</h1>
+          <p>This page doesn’t exist (or isn’t published).</p>
+        </>
+      ) : (
+        <>
+          <h1>Temporarily unavailable</h1>
+          <p>The CMS is currently unavailable. The rest of the site should continue to work.</p>
+        </>
+      )}
+    </main>
+  </Layout>
+) : isBlogPost && post ? (
+  <Layout seo={{
+    title: post.title,
+    description: post.description || "",
+  }}>
+    <article class="post-detail">
+      {DIRECTUS_URL && post.image && (
+        <div class="post-header-image">
+          <Image
+            src={`${DIRECTUS_URL}/assets/${post.image.filename_disk}`}
+            alt={post.image.title || post.title}
+            width={post.image.width}
+            height={post.image.height}
+            class="post-featured-image"
+          />
+        </div>
+      )}
+      <div class="post-content-wrapper">
+        <header class="post-header">
+          <h1 class="post-title">{post.title}</h1>
+          {post.description && <p class="post-description">{post.description}</p>}
+          <div class="post-meta">
+            {post.published_at && (
+              <time datetime={post.published_at}>
+                {new Date(post.published_at).toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </time>
+            )}
+            {post.author && (
+              <span class="post-author">
+                by {post.author.first_name} {post.author.last_name}
+              </span>
+            )}
+          </div>
+        </header>
+        {post.content && (
+          <div class="post-body" set:html={post.content}></div>
+        )}
+      </div>
+    </article>
+  </Layout>
+) : (
+  <Layout seo={pageData?.seo}>
+    <main style="max-width: 900px; margin: 0 auto; padding: 2rem;">
+      <h1>{pageData?.title || "Page"}</h1>
+      {pageData?.description && <p>{pageData.description}</p>}
+    </main>
+  </Layout>
+)}
+
+<style>
+  .post-detail {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  .post-header-image {
+    width: 100%;
+    margin-bottom: 2rem;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .post-featured-image {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .post-content-wrapper {
+    padding: 0 1rem;
+  }
+
+  .post-header {
+    margin-bottom: 2rem;
+  }
+
+  .post-title {
+    font-size: 3rem;
+    line-height: 1.2;
+    margin-bottom: 1rem;
+    color: #333333;
+  }
+
+  .post-description {
+    font-size: 1.25rem;
+    color: #666666;
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+  }
+
+  .post-meta {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.875rem;
+    color: #888888;
+    margin-bottom: 2rem;
+  }
+
+  .post-author {
+    font-style: italic;
+  }
+
+  .post-body {
+    font-size: 1.125rem;
+    line-height: 1.8;
+    color: #333333;
+  }
+
+  .post-body :global(h1),
+  .post-body :global(h2),
+  .post-body :global(h3),
+  .post-body :global(h4) {
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    color: #333333;
+  }
+
+  .post-body :global(p) {
+    margin-bottom: 1.5rem;
+  }
+
+  .post-body :global(img) {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin: 2rem 0;
+  }
+
+  .post-body :global(a) {
+    color: #0066cc;
+    text-decoration: underline;
+  }
+
+  .post-body :global(ul),
+  .post-body :global(ol) {
+    margin-bottom: 1.5rem;
+    padding-left: 2rem;
+  }
+
+  .post-body :global(li) {
+    margin-bottom: 0.5rem;
+  }
+
+  .post-body :global(blockquote) {
+    border-left: 4px solid #0066cc;
+    padding-left: 1.5rem;
+    margin: 2rem 0;
+    font-style: italic;
+    color: #666666;
+  }
+</style>

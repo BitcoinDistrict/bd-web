@@ -1,0 +1,76 @@
+---
+import Layout from "../layouts/Layout.astro";
+import PageHeader from "../components/PageHeader.astro";
+import BTCMap from "../components/BTCMap.astro";
+
+const seo = {
+  title: "Merchants | Bitcoin District",
+  description:
+    "Explore shops, cafés, and services across the District that accept Bitcoin (on-chain & Lightning). Live data from BTC Map.",
+};
+---
+
+<Layout seo={seo}>
+  <main class="merchants-page">
+    <PageHeader 
+      title="Bitcoin Merchants in DC"
+      description="Explore shops, cafés, and services across the District that accept Bitcoin (on-chain & Lightning). This page uses live data from BTC Map. If something's missing or outdated, please update it on BTC Map to help the community."
+    />
+
+    <section class="merchants-section" aria-labelledby="merchants-map-title">
+      <div class="section-head">
+        <h2 id="merchants-map-title">Explore Bitcoin-Friendly Businesses</h2>
+        <p>
+          Data courtesy of <a class="inline-link" href="https://btcmap.org" target="_blank" rel="noopener noreferrer">BTCMap.org</a>. 
+          Update or add merchants there to help keep this list fresh.
+        </p>
+      </div>
+
+      <BTCMap lat={38.898440071478795} long={-77.03426861762752} zoom={11} title="BTC Map showing Bitcoin merchants in Washington, DC" />
+    </section>
+  </main>
+</Layout>
+
+<style>
+  .merchants-page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 3rem 2rem;
+  }
+
+  .merchants-section {
+    margin-top: 2.75rem;
+  }
+
+  .section-head {
+    margin-bottom: 1rem;
+  }
+
+  .section-head h2 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.5rem;
+  }
+
+  .section-head p {
+    margin: 0;
+    color: rgba(0, 0, 0, 0.72);
+    line-height: 1.6;
+  }
+
+  .inline-link {
+    margin-left: 0.35rem;
+    font-weight: 600;
+    color: #0e0535;
+    text-decoration: none;
+  }
+
+  .inline-link:hover {
+    text-decoration: underline;
+  }
+
+  @media (max-width: 640px) {
+    .merchants-page {
+      padding: 2.25rem 1rem;
+    }
+  }
+</style>

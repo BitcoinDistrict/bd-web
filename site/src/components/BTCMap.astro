@@ -1,0 +1,53 @@
+---
+export type Props = {
+  /** Latitude for map center */
+  lat?: number;
+  /** Longitude for map center (BTCMap uses `long`) */
+  long?: number;
+  /** Web map zoom level */
+  zoom?: number;
+  /** Accessible title for the iframe */
+  title?: string;
+};
+
+const {
+  lat = 38.9072, // Washington, DC
+  long = -77.0369,
+  zoom = 13,
+  title = "BTC Map",
+} = Astro.props;
+
+const src = `https://btcmap.org/map?lat=${encodeURIComponent(lat)}&long=${encodeURIComponent(
+  long
+)}&zoom=${encodeURIComponent(zoom)}`;
+---
+
+<div class="btcmap">
+  <iframe
+    class="btcmap__frame"
+    title={title}
+    src={src}
+    loading="lazy"
+    allowfullscreen
+    allow="geolocation"
+    referrerpolicy="no-referrer-when-downgrade"
+  />
+</div>
+
+<style>
+  .btcmap {
+    width: 100%;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: #fff;
+  }
+
+  .btcmap__frame {
+    display: block;
+    width: 100%;
+    height: min(70vh, 520px);
+    border: 0;
+  }
+</style>
+

@@ -1,0 +1,43 @@
+---
+import Layout from "../layouts/Layout.astro";
+import BitcoinStatsSection from "../components/sections/BitcoinStatsSection.astro";
+import UpcomingEventsSection from "../components/sections/UpcomingEventsSection.astro";
+import BookClubSection from "../components/sections/BookClubSection.astro";
+---
+
+<Layout>
+	<main class="home">
+		<section class="hero">
+			<h1>Bitcoin District</h1>
+			<p>₿itcoin District is a community of Bitcoiners living and working in the DC, Maryland & Virginia (DMV) area. We come together to network, socialize and learn from one another, all united over our belief in the power of Bitcoin, freedom and sovereignty.</p>
+		</section>
+		<BitcoinStatsSection background="white" />
+		<UpcomingEventsSection 
+			title="Upcoming Events"
+			subtitle="Washington D.C. is a hub for Bitcoiners, organizations and companies building on Bitcoin. This events page aims to be a central location for all Bitcoiners to find events in the DC, Maryland & Virginia (DMV) area."
+			background="gray"
+			maxEvents={4}
+		/>
+		<BookClubSection background="white" />
+	</main>
+</Layout>
+
+<style>
+	.home {
+		max-width: 1100px;
+		margin: 0 auto;
+		padding: 3rem 2rem;
+	}
+
+	.hero h1 {
+		font-size: 3rem;
+		margin: 0 0 1rem 0;
+	}
+
+	.hero p {
+		font-size: 1.125rem;
+		line-height: 1.6;
+		color: #444;
+		margin: 0;
+	}
+</style>

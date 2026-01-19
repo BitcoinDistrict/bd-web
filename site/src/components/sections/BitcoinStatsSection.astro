@@ -1,0 +1,467 @@
+---
+// Module-level cache (persists across requests in SSR)
+const globalCache = (globalThis as any).__bitcoinStatsCache || ((globalThis as any).__bitcoinStatsCache = new Map<string, { data: any; timestamp: number }>());
+const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes (to avoid rate limiting)
+
+function getCachedData(key: string) {
+  const cached = globalCache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.data;
+  }
+  return null;
+}
+
+function setCachedData(key: string, data: any) {
+  globalCache.set(key, { data, timestamp: Date.now() });
+}
+
+interface Props {
+  background?: 'white' | 'gray';
+  class?: string;
+}
+
+const { background = 'white', class: className = '' } = Astro.props;
+
+// Server-side data fetching
+async function fetchBitcoinStats() {
+  // Check cache first
+  const cached = getCachedData('bitcoin-stats');
+  if (cached) {
+    console.log('Using cached Bitcoin stats');
+    return cached;
+  }
+  try {
+    // Fetch price and dominance data
+    const [priceResponse, globalResponse, hashrateResponse, blockHeightResponse] = await Promise.all([
+      fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true'),
+      fetch('https://api.coingecko.com/api/v3/global'),
+      fetch('https://blockchain.info/q/hashrate'),
+      fetch('https://blockchain.info/q/getblockcount')
+    ]);
+
+    // Check if responses are ok
+    if (!priceResponse.ok) {
+      console.error('Price API failed:', priceResponse.status, priceResponse.statusText);
+      return null;
+    }
+    if (!globalResponse.ok) {
+      console.error('Global API failed:', globalResponse.status, globalResponse.statusText);
+      return null;
+    }
+
+    const priceData = await priceResponse.json();
+    const globalData = await globalResponse.json();
+    const hashrateGH = await hashrateResponse.text();
+    const currentBlock = parseInt(await blockHeightResponse.text());
+
+    // Validate data structure
+    if (!priceData?.bitcoin?.usd) {
+      console.error('Invalid price data structure:', priceData);
+      return null;
+    }
+    if (!globalData?.data?.market_cap_percentage?.btc) {
+      console.error('Invalid global data structure:', globalData);
+      return null;
+    }
+
+    // Process data
+    const price = priceData.bitcoin.usd;
+    const change = priceData.bitcoin.usd_24h_change;
+    const dominance = globalData.data.market_cap_percentage.btc;
+    
+    // Convert hashrate from GH/s to EH/s
+    const hashrateEH = (parseFloat(hashrateGH) / 1000000000).toFixed(0);
+    
+    // Calculate halving progress
+    const blocksPerHalving = 210000;
+    const lastHalvingBlock = Math.floor(currentBlock / blocksPerHalving) * blocksPerHalving;
+    const nextHalvingBlock = lastHalvingBlock + blocksPerHalving;
+    const blocksUntilHalving = nextHalvingBlock - currentBlock;
+    const progressPercent = ((currentBlock - lastHalvingBlock) / blocksPerHalving) * 100;
+    
+    // Estimate time until halving (approximately 10 minutes per block)
+    const minutesUntilHalving = blocksUntilHalving * 10;
+    const daysUntilHalving = Math.floor(minutesUntilHalving / (60 * 24));
+    
+    let formattedProgress;
+    if (daysUntilHalving > 365) {
+      const years = Math.floor(daysUntilHalving / 365);
+      const remainingDays = daysUntilHalving % 365;
+      formattedProgress = `~${years}y ${remainingDays}d`;
+    } else {
+      formattedProgress = `~${daysUntilHalving} days`;
+    }
+
+    const result = {
+      price: price.toLocaleString(),
+      priceChange: change.toFixed(2),
+      isPositiveChange: change >= 0,
+      dominance: dominance.toFixed(1),
+      hashrate: `${hashrateEH} EH/s`,
+      halvingProgress: formattedProgress,
+      halvingPercent: Math.min(progressPercent, 100).toFixed(1),
+      timestamp: Date.now()
+    };
+
+    // Cache the result
+    setCachedData('bitcoin-stats', result);
+    
+    return result;
+  } catch (error) {
+    console.error('Error fetching Bitcoin stats:', error);
+    // Return cached data if available, even if expired
+    const staleCache = getCachedData('bitcoin-stats');
+    if (staleCache) {
+      console.log('Using stale cached data due to API error');
+      return staleCache;
+    }
+    return null;
+  }
+}
+
+const stats = await fetchBitcoinStats();
+const bgClass = background === 'gray' ? 'bg-gray-50' : 'bg-white';
+---
+
+<section class={`bitcoin-stats-section ${bgClass} ${className}`}>
+  <div class="container">
+    {stats ? (
+      <div class="stats-grid">
+        <!-- Bitcoin Price -->
+        <div class="stat-card">
+          <div class="stat-icon" style="color: #f7931a;">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11.767 19.089c4.924.868 6.14-6.025 1.216-6.894m-1.216 6.894L5.86 18.047m5.908 1.042-.347 1.97m1.563-8.864c4.924.869 6.14-6.025 1.215-6.893m-1.215 6.893-3.94-.694m5.155-6.2L8.29 4.26m5.908 1.042.348-1.97M7.48 20.364l3.126-17.727"/>
+            </svg>
+          </div>
+          <div class="stat-value" data-stat="price" data-initial={stats.price}>
+            ${stats.price}
+          </div>
+          <div class="stat-label">Bitcoin Price (USD)</div>
+          <div 
+            class={`stat-change ${stats.isPositiveChange ? 'positive' : 'negative'}`}
+            data-stat="price-change"
+            data-initial={stats.priceChange}
+          >
+            {stats.isPositiveChange ? '+' : ''}{stats.priceChange}% (24h)
+          </div>
+        </div>
+
+        <!-- Network Hashrate -->
+        <div class="stat-card">
+          <div class="stat-icon" style="color: #3b82f6;">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="4" width="16" height="16" rx="2" ry="2"/>
+              <rect x="9" y="9" width="6" height="6"/>
+              <line x1="9" y1="1" x2="9" y2="4"/>
+              <line x1="15" y1="1" x2="15" y2="4"/>
+              <line x1="9" y1="20" x2="9" y2="23"/>
+              <line x1="15" y1="20" x2="15" y2="23"/>
+              <line x1="20" y1="9" x2="23" y2="9"/>
+              <line x1="20" y1="14" x2="23" y2="14"/>
+              <line x1="1" y1="9" x2="4" y2="9"/>
+              <line x1="1" y1="14" x2="4" y2="14"/>
+            </svg>
+          </div>
+          <div class="stat-value" data-stat="hashrate" data-initial={stats.hashrate}>
+            {stats.hashrate}
+          </div>
+          <div class="stat-label">Network Hashrate</div>
+        </div>
+
+        <!-- Halving Progress -->
+        <div class="stat-card">
+          <div class="stat-icon" style="color: #8b5cf6;">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6.5 7h11"/>
+              <path d="M6.5 17h11"/>
+              <path d="M6 20V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1Z"/>
+              <path d="M6 7 12 13 18 7"/>
+              <path d="m6 17 6-6 6 6"/>
+            </svg>
+          </div>
+          <div class="stat-value" data-stat="halving" data-initial={stats.halvingProgress}>
+            {stats.halvingProgress}
+          </div>
+          <div class="stat-label">Until Next Halving</div>
+          <div class="progress-bar">
+            <div 
+              class="progress-fill" 
+              data-stat="halving-bar"
+              style={`width: ${stats.halvingPercent}%`}
+              data-initial={stats.halvingPercent}
+            ></div>
+          </div>
+        </div>
+
+        <!-- Bitcoin Dominance -->
+        <div class="stat-card">
+          <div class="stat-icon" style="color: #10b981;">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/>
+              <path d="M22 12A10 10 0 0 0 12 2v10z"/>
+            </svg>
+          </div>
+          <div class="stat-value" data-stat="dominance" data-initial={stats.dominance}>
+            {stats.dominance}%
+          </div>
+          <div class="stat-label">Bitcoin Dominance</div>
+        </div>
+      </div>
+    ) : (
+      <div class="error-message">
+        <p>Unable to load Bitcoin stats at this time. Please try again later.</p>
+      </div>
+    )}
+  </div>
+</section>
+
+<style>
+  .bitcoin-stats-section {
+    padding: 3rem 1rem;
+    width: 100%;
+  }
+
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+  }
+
+  .stat-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 2rem;
+    text-align: center;
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
+  }
+
+  .bg-gray-50 .stat-card {
+    background: white;
+  }
+
+  .stat-card:hover {
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+  }
+
+  .stat-icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 1rem;
+  }
+
+  .stat-value {
+    font-size: 1.875rem;
+    font-weight: bold;
+    color: #111827;
+    margin-bottom: 0.5rem;
+  }
+
+  .stat-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6b7280;
+    margin-bottom: 0.5rem;
+  }
+
+  .stat-change {
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-top: 0.5rem;
+  }
+
+  .stat-change.positive {
+    color: #10b981;
+  }
+
+  .stat-change.negative {
+    color: #ef4444;
+  }
+
+  .progress-bar {
+    width: 100%;
+    height: 8px;
+    background-color: #e5e7eb;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 1rem;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background-color: #8b5cf6;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+  }
+
+  .error-message {
+    text-align: center;
+    padding: 2rem;
+    color: #6b7280;
+  }
+
+  @media (max-width: 768px) {
+    .bitcoin-stats-section {
+      padding: 2rem 1rem;
+    }
+
+    .stats-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+    }
+
+    .stat-card {
+      padding: 1.25rem 1rem;
+    }
+
+    /* Hide halving and dominance stats on mobile */
+    .stat-card:nth-child(3),
+    .stat-card:nth-child(4) {
+      display: none;
+    }
+
+    .stat-icon {
+      width: 32px;
+      height: 32px;
+      margin: 0 auto 0.75rem;
+    }
+
+    .stat-value {
+      font-size: 1.25rem;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+    }
+
+    .stat-change {
+      font-size: 0.75rem;
+    }
+  }
+</style>
+
+<script>
+  // Optional: Client-side refresh every 2 minutes for active tabs
+  // This enhances the SSR data with periodic updates
+  
+  let updateTimer: NodeJS.Timeout | null = null;
+  let isTabActive = !document.hidden;
+
+  async function updateStats() {
+    if (!isTabActive) return;
+
+    try {
+      const [priceResponse, globalResponse, hashrateResponse, blockHeightResponse] = await Promise.all([
+        fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true'),
+        fetch('https://api.coingecko.com/api/v3/global'),
+        fetch('https://blockchain.info/q/hashrate'),
+        fetch('https://blockchain.info/q/getblockcount')
+      ]);
+
+      const priceData = await priceResponse.json();
+      const globalData = await globalResponse.json();
+      const hashrateGH = await hashrateResponse.text();
+      const currentBlock = parseInt(await blockHeightResponse.text());
+
+      // Update price
+      const price = priceData.bitcoin.usd;
+      const change = priceData.bitcoin.usd_24h_change;
+      const priceElement = document.querySelector('[data-stat="price"]');
+      const priceChangeElement = document.querySelector('[data-stat="price-change"]');
+      
+      if (priceElement) {
+        priceElement.textContent = `$${price.toLocaleString()}`;
+      }
+      if (priceChangeElement) {
+        const isPositive = change >= 0;
+        priceChangeElement.textContent = `${isPositive ? '+' : ''}${change.toFixed(2)}% (24h)`;
+        priceChangeElement.className = `stat-change ${isPositive ? 'positive' : 'negative'}`;
+      }
+
+      // Update dominance
+      const dominance = globalData.data.market_cap_percentage.btc;
+      const dominanceElement = document.querySelector('[data-stat="dominance"]');
+      if (dominanceElement) {
+        dominanceElement.textContent = `${dominance.toFixed(1)}%`;
+      }
+
+      // Update hashrate
+      const hashrateEH = (parseFloat(hashrateGH) / 1000000000).toFixed(0);
+      const hashrateElement = document.querySelector('[data-stat="hashrate"]');
+      if (hashrateElement) {
+        hashrateElement.textContent = `${hashrateEH} EH/s`;
+      }
+
+      // Update halving progress
+      const blocksPerHalving = 210000;
+      const lastHalvingBlock = Math.floor(currentBlock / blocksPerHalving) * blocksPerHalving;
+      const nextHalvingBlock = lastHalvingBlock + blocksPerHalving;
+      const blocksUntilHalving = nextHalvingBlock - currentBlock;
+      const progressPercent = ((currentBlock - lastHalvingBlock) / blocksPerHalving) * 100;
+      
+      const minutesUntilHalving = blocksUntilHalving * 10;
+      const daysUntilHalving = Math.floor(minutesUntilHalving / (60 * 24));
+      
+      let formattedProgress;
+      if (daysUntilHalving > 365) {
+        const years = Math.floor(daysUntilHalving / 365);
+        const remainingDays = daysUntilHalving % 365;
+        formattedProgress = `~${years}y ${remainingDays}d`;
+      } else {
+        formattedProgress = `~${daysUntilHalving} days`;
+      }
+
+      const halvingElement = document.querySelector('[data-stat="halving"]');
+      const halvingBar = document.querySelector('[data-stat="halving-bar"]') as HTMLElement;
+      
+      if (halvingElement) {
+        halvingElement.textContent = formattedProgress;
+      }
+      if (halvingBar) {
+        halvingBar.style.width = `${Math.min(progressPercent, 100).toFixed(1)}%`;
+      }
+    } catch (error) {
+      console.error('Error updating Bitcoin stats:', error);
+    }
+  }
+
+  function startUpdating() {
+    // Update every 2 minutes when tab is active
+    updateTimer = setInterval(() => {
+      if (isTabActive) {
+        updateStats();
+      }
+    }, 2 * 60 * 1000);
+  }
+
+  // Handle visibility changes
+  document.addEventListener('visibilitychange', () => {
+    isTabActive = !document.hidden;
+    if (isTabActive) {
+      updateStats();
+    }
+  });
+
+  // Start updates when page loads
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startUpdating);
+  } else {
+    startUpdating();
+  }
+
+  // Cleanup on navigation
+  document.addEventListener('astro:before-preparation', () => {
+    if (updateTimer) {
+      clearInterval(updateTimer);
+    }
+  });
+</script>

@@ -1,0 +1,225 @@
+---
+import { getBooks, getDirectusUrl, type Book } from "../../lib/directus";
+
+interface Props {
+  background?: 'white' | 'gray';
+  class?: string;
+}
+
+const { background = 'white', class: className = '' } = Astro.props;
+
+// Fetch books and find the next upcoming or latest read
+async function getFeaturedBook(): Promise<Book | null> {
+  const result = await getBooks();
+  
+  if (result.error || !result.data || result.data.length === 0) {
+    console.error('[BookClubSection] Failed to fetch books:', result.error);
+    return null;
+  }
+
+  const books = result.data;
+  const now = new Date();
+
+  // First, try to find a book with a future date
+  const futureBooks = books.filter(book => {
+    if (!book.date_bookclub_read) return false;
+    return new Date(book.date_bookclub_read) > now;
+  }).sort((a, b) => {
+    const dateA = new Date(a.date_bookclub_read!);
+    const dateB = new Date(b.date_bookclub_read!);
+    return dateA.getTime() - dateB.getTime();
+  });
+
+  if (futureBooks.length > 0) {
+    return futureBooks[0];
+  }
+
+  // If no future books, get the most recently read
+  const pastBooks = books.filter(book => {
+    if (!book.date_bookclub_read) return false;
+    return new Date(book.date_bookclub_read) <= now;
+  }).sort((a, b) => {
+    const dateA = new Date(a.date_bookclub_read!);
+    const dateB = new Date(b.date_bookclub_read!);
+    return dateB.getTime() - dateA.getTime();
+  });
+
+  if (pastBooks.length > 0) {
+    return pastBooks[0];
+  }
+
+  // Fallback to first book if no dates are set
+  return books[0] || null;
+}
+
+const book = await getFeaturedBook();
+const bgClass = background === 'gray' ? 'bg-gray-50' : 'bg-white';
+
+// Helper to get book cover image URL
+function getBookCoverUrl(book: Book): string | null {
+  if (!book.cover_image) return null;
+  
+  const directusUrl = getDirectusUrl();
+  if (typeof book.cover_image === 'string') {
+    return `${directusUrl}/assets/${book.cover_image}`;
+  }
+  return `${directusUrl}/assets/${book.cover_image.id}`;
+}
+
+const coverUrl = book ? getBookCoverUrl(book) : null;
+---
+
+<section class={`book-club-section ${bgClass} ${className}`}>
+  <div class="container">
+    {book ? (
+      <div class="content-wrapper">
+        <!-- Left Column: Text Content -->
+        <div class="text-content">
+          <h2 class="title">Join our Book Club</h2>
+          <p class="subtitle">
+            We get together every month(ish) to discuss a new book related to Bitcoin, money and economics. Everyone is welcome!
+          </p>
+          <a href="/bookclub" class="cta-button">
+            See What We're Reading
+          </a>
+        </div>
+
+        <!-- Right Column: Book Cover -->
+        <div class="book-cover">
+          {coverUrl && (
+            <a href="/bookclub" class="book-link">
+              <img 
+                src={coverUrl} 
+                alt={`Cover of ${book.title} by ${book.author}`}
+                class="cover-image"
+              />
+            </a>
+          )}
+        </div>
+      </div>
+    ) : (
+      <div class="error-message">
+        <p>Unable to load book club information at this time.</p>
+      </div>
+    )}
+  </div>
+</section>
+
+<style>
+  .book-club-section {
+    padding: 4rem 1rem;
+    width: 100%;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .content-wrapper {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    align-items: center;
+  }
+
+  .text-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .title {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #111827;
+    margin: 0;
+    line-height: 1.2;
+  }
+
+  .subtitle {
+    font-size: 1.125rem;
+    line-height: 1.6;
+    color: #4b5563;
+    margin: 0;
+  }
+
+  .cta-button {
+    display: inline-block;
+    padding: 0.875rem 2rem;
+    background-color: #f7931a;
+    color: white;
+    font-weight: 600;
+    font-size: 1rem;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    align-self: flex-start;
+    border: 2px solid #f7931a;
+  }
+
+  .cta-button:hover {
+    background-color: #d97706;
+    border-color: #d97706;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(247, 147, 26, 0.3);
+  }
+
+  .book-cover {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .book-link {
+    display: block;
+    max-width: 100%;
+    transition: transform 0.3s ease;
+  }
+
+  .book-link:hover {
+    transform: scale(1.05);
+  }
+
+  .cover-image {
+    width: 100%;
+    max-width: 400px;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  }
+
+  .error-message {
+    text-align: center;
+    padding: 2rem;
+    color: #6b7280;
+  }
+
+  @media (max-width: 768px) {
+    .book-club-section {
+      padding: 3rem 1rem;
+    }
+
+    .content-wrapper {
+      grid-template-columns: 1fr;
+      gap: 2.5rem;
+    }
+
+    .title {
+      font-size: 2rem;
+      text-align: center;
+    }
+
+    .subtitle {
+      text-align: center;
+    }
+
+    .cta-button {
+      align-self: center;
+    }
+
+    .cover-image {
+      max-width: 280px;
+    }
+  }
+</style>

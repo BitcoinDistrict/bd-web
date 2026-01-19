@@ -1,0 +1,74 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import PageHeader from "../../components/PageHeader.astro";
+import PodcastList from "../../components/PodcastList.astro";
+import { getPodcastEpisodes, type PodcastEpisode } from "../../lib/directus";
+
+const cmsEnabled = import.meta.env.PUBLIC_CMS_ENABLED === "true";
+
+let episodes: PodcastEpisode[] = [];
+let error: string | null = null;
+
+if (cmsEnabled) {
+  const result = await getPodcastEpisodes();
+  if (result.error) {
+    error = result.error;
+    console.error("[Podcast Page] Error fetching podcast episodes:", result.error);
+  } else {
+    episodes = result.data || [];
+    console.log(`[Podcast Page] Loaded ${episodes.length} episode(s)`);
+  }
+} else {
+  console.warn("[Podcast Page] CMS is disabled (PUBLIC_CMS_ENABLED !== 'true')");
+}
+
+const seo = {
+  title: "Podcast | Bitcoin District",
+  description:
+    "Listen to Bitcoin District podcast episodes featuring discussions about Bitcoin, freedom tech, and the DMV Bitcoin community.",
+};
+---
+
+<Layout seo={seo}>
+  <main class="podcast-page">
+    <PageHeader title="Bitcoin District Podcast" />
+
+    {error ? (
+      <section class="podcast-error" aria-live="polite">
+        <p>
+          {error === "NOT_FOUND" 
+            ? "No podcast episodes found." 
+            : "Unable to load podcast episodes at this time. Please try again later."}
+        </p>
+      </section>
+    ) : (
+      <section class="podcast-section" aria-labelledby="podcast-list-title">
+        <PodcastList episodes={episodes} />
+      </section>
+    )}
+  </main>
+</Layout>
+
+<style>
+  .podcast-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 3rem 2rem;
+  }
+
+  .podcast-section {
+    margin-top: 2.75rem;
+  }
+
+  .podcast-error {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: rgba(0, 0, 0, 0.6);
+  }
+
+  @media (max-width: 640px) {
+    .podcast-page {
+      padding: 2.25rem 1rem;
+    }
+  }
+</style>

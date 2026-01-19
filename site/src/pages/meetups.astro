@@ -1,0 +1,70 @@
+---
+import Layout from "../layouts/Layout.astro";
+import PageHeader from "../components/PageHeader.astro";
+import MeetupsList from "../components/MeetupsList.astro";
+import { meetupsData } from "../data/meetups";
+
+const seo = {
+  title: "Meetups | Bitcoin District",
+  description:
+    "Discover Bitcoin meetups in the DC, Maryland & Virginia greater metro area. Connect with local Bitcoiners and join our community events.",
+};
+---
+
+<Layout seo={seo}>
+  <main class="meetups-page">
+    <PageHeader 
+      title="Bitcoin Community Meetups in the DMV"
+      description="These are the Bitcoin meetups in and around the DC, Maryland & Virginia greater metro area. Connect with your community and learn more about Bitcoin and freedom tech."
+    />
+
+    <section class="meetups-section" aria-labelledby="meetups-list-title">
+      <MeetupsList meetups={meetupsData} />
+    </section>
+  </main>
+</Layout>
+
+<style>
+  .meetups-page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 3rem 2rem;
+  }
+
+  .meetups-section {
+    margin-top: 2.75rem;
+  }
+
+  .section-head {
+    margin-bottom: 1rem;
+  }
+
+  .section-head h2 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.5rem;
+  }
+
+  .section-head p {
+    margin: 0;
+    color: rgba(0, 0, 0, 0.72);
+    line-height: 1.6;
+  }
+
+  .inline-link {
+    margin-left: 0.35rem;
+    font-weight: 600;
+    color: #0e0535;
+    text-decoration: none;
+  }
+
+  .inline-link:hover {
+    text-decoration: underline;
+  }
+
+  @media (max-width: 640px) {
+    .meetups-page {
+      padding: 2.25rem 1rem;
+    }
+  }
+</style>
+

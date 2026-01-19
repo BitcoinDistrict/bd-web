@@ -1,0 +1,104 @@
+---
+import Layout from '../layouts/Layout.astro';
+import PageHeader from '../components/PageHeader.astro';
+import ContactForm from '../components/ContactForm.astro';
+import { getGlobals } from '../lib/directus';
+
+// Fetch globals to get form configuration
+const globalsResult = await getGlobals();
+const globals = globalsResult.data;
+
+// Form configuration from Directus
+const recaptchaSiteKey = globals?.form_recaptcha_sitekey || '';
+const submitUrl = ''; // Submit URL should be configured in ContactForm component or via API route
+
+// If form configuration is missing, log a warning
+if (!recaptchaSiteKey) {
+  console.warn('⚠️ reCAPTCHA site key not configured in Directus Globals. Form will work but without spam protection. Please add "form_recaptcha_sitekey" field.');
+}
+
+const seo = {
+  title: 'Contact Us',
+  description: 'Get in touch with Bitcoin District. Connect with Bitcoiners in the DMV area.',
+};
+---
+
+<Layout seo={seo}>
+  <main class="contact-page">
+    <div class="contact-container">
+      <PageHeader title="Connect with Us" />
+
+      <div class="contact-form-wrapper">
+        <ContactForm
+          inputs={[
+            {
+              type: 'text',
+              name: 'name',
+              label: 'Name',
+              required: true,
+            },
+            {
+              type: 'email',
+              name: 'email',
+              label: 'Email',
+              required: true,
+            },
+            {
+              type: 'tel',
+              name: 'phone',
+              label: 'Phone (optional)',
+              required: false,
+            },
+            {
+              type: 'text',
+              name: 'organization',
+              label: 'Organization (optional)',
+              required: false,
+            },
+          ]}
+          textarea={{
+            label: 'Message',
+            rows: 6,
+          }}
+          button="Send Message"
+          submitUrl={submitUrl}
+          recaptchaSiteKey={recaptchaSiteKey}
+          description={`You can also find us on <a href="https://primal.net/p/npub1mcke7stw5mrqp97lmdu0qdrfcz2uertdsy2n9pzvfnsdutx3hvkq7d5mnw" target="_blank" rel="noopener noreferrer">Nostr</a> & <a href="https://x.com/BTCDistrict" target="_blank" rel="noopener noreferrer">X</a>. We value your privacy and so should you! Check out some <a href="https://awesome-privacy.xyz/communication/mail-forwarding" target="_blank" rel="noopener noreferrer">awesome privacy tips</a>.`}
+        />
+      </div>
+
+    </div>
+  </main>
+</Layout>
+
+<style>
+  .contact-page {
+    width: 100%;
+    min-height: calc(100vh - 80px);
+    padding: 4rem 2rem;
+    background: #ffffff;
+  }
+
+  .contact-container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .contact-form-wrapper {
+    background: white;
+    border-radius: 0.5rem;
+    padding: 2rem;
+  }
+
+  /* Responsive design */
+  @media (max-width: 768px) {
+    .contact-page {
+      padding: 2rem 1rem;
+    }
+
+    .contact-form-wrapper {
+      padding: 2rem 1.5rem;
+    }
+  }
+
+</style>

@@ -1,0 +1,14 @@
+node_modules
+.env
+dist
+.DS_Store
+directus/data
+directus/uploads
+directus/extensions
+site/.astro
+
+db-backups/
+# never commit nested git backup folders
+site/.git.bak/
+
+.directus-template-cli/

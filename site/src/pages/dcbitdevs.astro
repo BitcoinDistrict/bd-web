@@ -1,0 +1,27 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+const seo = {
+  title: "DC BitDevs | Bitcoin District",
+  description: "Join DC BitDevs - a community for Bitcoin developers in the DC area.",
+};
+---
+
+<Layout seo={seo}>
+  <main class="dcbitdevs-page">
+  </main>
+</Layout>
+
+<style>
+  .dcbitdevs-page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 3rem 2rem;
+  }
+
+  @media (max-width: 640px) {
+    .dcbitdevs-page {
+      padding: 2.25rem 1rem;
+    }
+  }
+</style>

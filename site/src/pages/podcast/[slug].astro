@@ -1,0 +1,277 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import PodcastPlayer from "../../components/PodcastPlayer.astro";
+import { getPodcastEpisodeBySlug, getDirectusUrl, type PodcastEpisode } from "../../lib/directus";
+
+const cmsEnabled = import.meta.env.PUBLIC_CMS_ENABLED === "true";
+const { slug } = Astro.params;
+
+let episode: PodcastEpisode | null = null;
+let error: string | null = null;
+
+if (!cmsEnabled) {
+  Astro.response.status = 404;
+} else if (slug) {
+  const result = await getPodcastEpisodeBySlug(slug);
+  error = result.error;
+  episode = result.data;
+} else {
+  error = "NOT_FOUND";
+}
+
+if (error === "NOT_FOUND" || !episode) {
+  Astro.response.status = 404;
+}
+
+const DIRECTUS_URL = getDirectusUrl();
+// Handle both UUID string and expanded object for audio_file
+// Directus assets endpoint uses file ID, not filename_disk
+const audioUrl = episode?.audio_file 
+  ? typeof episode.audio_file === 'string'
+    ? `${DIRECTUS_URL}/assets/${episode.audio_file}`
+    : `${DIRECTUS_URL}/assets/${episode.audio_file.id}`
+  : null;
+// Handle both UUID string and expanded object for cover_image
+// Directus assets endpoint uses file ID, not filename_disk
+const coverImageUrl = episode?.cover_image 
+  ? typeof episode.cover_image === 'string'
+    ? `${DIRECTUS_URL}/assets/${episode.cover_image}`
+    : `${DIRECTUS_URL}/assets/${episode.cover_image.id}?format=webp&quality=80`
+  : null;
+---
+
+{error || !episode ? (
+  <Layout seo={{ title: "Episode Not Found", description: "This podcast episode could not be found." }}>
+    <main class="podcast-episode-page">
+      <div class="episode-error">
+        <h1>Episode Not Found</h1>
+        <p>This podcast episode doesn't exist or isn't published.</p>
+        <a href="/podcast">← Back to Podcast</a>
+      </div>
+    </main>
+  </Layout>
+) : (
+  <Layout seo={{
+    title: `${episode.title} | Bitcoin District Podcast`,
+    description: episode.description 
+      ? episode.description.replace(/<[^>]*>/g, '').substring(0, 160)
+      : `Listen to ${episode.title} on Bitcoin District Podcast`,
+  }}>
+    <main class="podcast-episode-page">
+      <article class="episode-detail">
+        <a href="/podcast" class="episode-back">← Back to Podcast</a>
+
+        <div class="episode-header-section">
+          {coverImageUrl && episode.cover_image && (
+            <div class="episode-cover-image">
+              <img
+                src={coverImageUrl}
+                alt={episode.cover_image.title || episode.title}
+                width={typeof episode.cover_image === 'object' && episode.cover_image?.width ? episode.cover_image.width : 400}
+                height={typeof episode.cover_image === 'object' && episode.cover_image?.height ? episode.cover_image.height : 400}
+                class="episode-featured-image"
+              />
+            </div>
+          )}
+
+          <div class="episode-header-content">
+            <header class="episode-header">
+              <h1 class="episode-title">{episode.title}</h1>
+              {episode.air_date && (
+                <time class="episode-date" datetime={episode.air_date}>
+                  {new Date(episode.air_date).toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </time>
+              )}
+            </header>
+
+            {audioUrl && (
+              <div class="episode-player">
+                <PodcastPlayer audioUrl={audioUrl} episodeTitle={episode.title} />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {episode.description && (
+          <div class="episode-description" set:html={episode.description}></div>
+        )}
+      </article>
+    </main>
+  </Layout>
+)}
+
+<style>
+  .podcast-episode-page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  .episode-error {
+    text-align: center;
+    padding: 3rem 1rem;
+  }
+
+  .episode-error h1 {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+  }
+
+  .episode-error a {
+    display: inline-block;
+    margin-top: 1rem;
+    color: #0066cc;
+    text-decoration: none;
+  }
+
+  .episode-error a:hover {
+    text-decoration: underline;
+  }
+
+  .episode-detail {
+    width: 100%;
+  }
+
+  .episode-back {
+    display: inline-block;
+    margin-bottom: 1.5rem;
+    color: rgba(0, 0, 0, 0.7);
+    text-decoration: none;
+    font-size: 0.95rem;
+    transition: color 180ms ease;
+  }
+
+  .episode-back:hover {
+    color: rgba(0, 0, 0, 0.9);
+  }
+
+  .episode-header-section {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 2rem;
+    align-items: flex-start;
+  }
+
+  .episode-cover-image {
+    flex-shrink: 0;
+    width: 200px;
+    height: 200px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #f5f5f5;
+  }
+
+  .episode-featured-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .episode-header-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .episode-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .episode-title {
+    font-size: 2rem;
+    line-height: 1.3;
+    margin: 0 0 0.75rem 0;
+    color: #333;
+  }
+
+  .episode-date {
+    display: block;
+    font-size: 0.95rem;
+    color: rgba(0, 0, 0, 0.6);
+    margin-bottom: 0;
+  }
+
+  .episode-player {
+    margin-top: 1.5rem;
+  }
+
+  .episode-description {
+    font-size: 1.125rem;
+    line-height: 1.8;
+    color: #333;
+    margin-top: 2rem;
+  }
+
+  .episode-description :global(h1),
+  .episode-description :global(h2),
+  .episode-description :global(h3),
+  .episode-description :global(h4) {
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    color: #333;
+  }
+
+  .episode-description :global(p) {
+    margin-bottom: 1.5rem;
+  }
+
+  .episode-description :global(img) {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin: 2rem 0;
+  }
+
+  .episode-description :global(a) {
+    color: #0066cc;
+    text-decoration: underline;
+  }
+
+  .episode-description :global(ul),
+  .episode-description :global(ol) {
+    margin-bottom: 1.5rem;
+    padding-left: 2rem;
+  }
+
+  .episode-description :global(li) {
+    margin-bottom: 0.5rem;
+  }
+
+  .episode-description :global(blockquote) {
+    border-left: 4px solid #0066cc;
+    padding-left: 1.5rem;
+    margin: 2rem 0;
+    font-style: italic;
+    color: #666;
+  }
+
+  @media (max-width: 640px) {
+    .podcast-episode-page {
+      padding: 1.5rem 1rem;
+    }
+
+    .episode-header-section {
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .episode-cover-image {
+      width: 100%;
+      max-width: 250px;
+      height: 250px;
+      margin: 0 auto;
+    }
+
+    .episode-title {
+      font-size: 1.75rem;
+    }
+
+    .episode-description {
+      font-size: 1rem;
+    }
+  }
+</style>

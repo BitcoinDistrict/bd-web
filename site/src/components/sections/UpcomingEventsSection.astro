@@ -1,0 +1,385 @@
+---
+import { getEvents, getDirectusUrl, type Event } from '../../lib/directus';
+import calendarPlaceholder from '../../assets/images/calendar-btc.png';
+
+interface Props {
+  title: string;
+  subtitle?: string;
+  background?: 'white' | 'gray';
+  maxEvents?: number;
+  class?: string;
+}
+
+const { 
+  title, 
+  subtitle, 
+  background = 'white', 
+  maxEvents = 4,
+  class: className = '' 
+} = Astro.props;
+
+const bgClass = background === 'gray' ? 'bg-gray-50' : 'bg-white';
+
+// Fetch events from Directus
+const result = await getEvents();
+const allEvents = result.data || [];
+
+// Filter to only show future events
+const now = new Date();
+const upcomingEvents = allEvents
+  .filter(event => {
+    const endDate = event.end_date_time ? new Date(event.end_date_time) : new Date(event.start_date_time);
+    return endDate > now;
+  })
+  .slice(0, maxEvents);
+
+// Format date and time
+function formatEventDate(startDate: string, endDate?: string | null): string {
+  const start = new Date(startDate);
+  
+  const dateOptions: Intl.DateTimeFormatOptions = {
+    month: 'short',
+    day: 'numeric',
+  };
+
+  const timeOptions: Intl.DateTimeFormatOptions = {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  };
+
+  const dateStr = start.toLocaleDateString('en-US', dateOptions);
+  const startTime = start.toLocaleTimeString('en-US', timeOptions);
+
+  return `${dateStr} • ${startTime}`;
+}
+
+// Get event image URL
+function getEventImageUrl(event: Event): string {
+  if (!event.image) return calendarPlaceholder.src;
+  
+  const directusUrl = getDirectusUrl();
+  if (typeof event.image === 'string') {
+    return `${directusUrl}/assets/${event.image}`;
+  }
+  return `${directusUrl}/assets/${event.image.id}`;
+}
+---
+
+<section class={`upcoming-events-section ${bgClass} ${className}`}>
+  <div class="container">
+    <div class="section-header">
+      <h2 class="title">{title}</h2>
+      {subtitle && <p class="subtitle">{subtitle}</p>}
+      <div class="cta-section">
+        <a 
+          href="https://lu.ma/bitcoindistrict" 
+          class="luma-button"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" stroke-width="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
+            <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
+            <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2"></line>
+          </svg>
+          Subscribe to our Luma Calendar
+        </a>
+      </div>
+    </div>
+
+    {upcomingEvents.length === 0 ? (
+      <div class="no-events">
+        <p>No upcoming events at this time. Check back soon!</p>
+      </div>
+    ) : (
+      <div class="events-grid">
+        {upcomingEvents.map((event) => {
+          const imageUrl = getEventImageUrl(event);
+          const rsvpUrl = event.rsvp_url || event.external_url || '#';
+          const hasValidRsvp = rsvpUrl !== '#';
+          
+          return (
+            <article class="event-card">
+              <a 
+                href={rsvpUrl}
+                class="card-image-link"
+                target={hasValidRsvp ? '_blank' : undefined}
+                rel={hasValidRsvp ? 'noopener noreferrer' : undefined}
+                aria-label={`View ${event.title}`}
+              >
+                <div class="card-image">
+                  <img src={imageUrl} alt={event.title} class="event-image" />
+                </div>
+              </a>
+              <div class="card-body">
+                <h3 class="event-title">{event.title}</h3>
+                <p class="event-date">{formatEventDate(event.start_date_time, event.end_date_time)}</p>
+              </div>
+              {hasValidRsvp && (
+                <a 
+                  href={rsvpUrl} 
+                  class="card-footer-rsvp"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  RSVP →
+                </a>
+              )}
+            </article>
+          );
+        })}
+      </div>
+    )}
+  </div>
+</section>
+
+<style>
+  .upcoming-events-section {
+    padding: 4rem 1rem;
+    width: 100%;
+  }
+
+  .bg-gray-50 {
+    background-color: #f9fafb;
+  }
+
+  .bg-white {
+    background-color: #ffffff;
+  }
+
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .section-header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+  }
+
+  .title {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #111827;
+    margin: 0 0 1rem 0;
+    line-height: 1.2;
+  }
+
+  .subtitle {
+    font-size: 1.125rem;
+    line-height: 1.6;
+    color: #4b5563;
+    margin: 0 auto;
+    max-width: 800px;
+  }
+
+  .no-events {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: #6b7280;
+    font-size: 1.125rem;
+  }
+
+  .events-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+  }
+
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .events-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .events-grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  .event-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .bg-gray-50 .event-card {
+    background: white;
+  }
+
+  .event-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.15);
+    border-color: #f7931a;
+  }
+
+  .card-image-link {
+    display: block;
+    width: 100%;
+    text-decoration: none;
+  }
+
+  .card-image {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    background: #f3f4f6;
+  }
+
+  .card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.3s ease;
+  }
+
+  .card-image-link:hover .card-image img {
+    transform: scale(1.05);
+  }
+
+  .card-body {
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    flex-grow: 1;
+  }
+
+  .event-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  .event-date {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: 0;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+  }
+
+  .event-date::before {
+    content: '';
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='16' y1='2' x2='16' y2='6'%3E%3C/line%3E%3Cline x1='8' y1='2' x2='8' y2='6'%3E%3C/line%3E%3Cline x1='3' y1='10' x2='21' y2='10'%3E%3C/line%3E%3C/svg%3E");
+    background-size: contain;
+    flex-shrink: 0;
+  }
+
+  .card-footer-rsvp {
+    display: block;
+    width: 100%;
+    padding: 0.875rem 1.5rem;
+    background: linear-gradient(135deg, #f7931a 0%, #ff9a00 100%);
+    color: white;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    text-decoration: none;
+    text-align: center;
+    transition: all 0.2s ease;
+    border-top: 1px solid rgba(247, 147, 26, 0.2);
+    margin-top: auto;
+  }
+
+  .card-footer-rsvp:hover {
+    background: linear-gradient(135deg, #d97706 0%, #ea8800 100%);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .card-footer-rsvp:active {
+    transform: scale(0.99);
+  }
+
+  .cta-section {
+    text-align: center;
+    margin-top: 1.5rem;
+    margin-bottom: 0;
+  }
+
+  .luma-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 2rem;
+    background-color: #6B21A8;
+    color: white;
+    font-weight: 700;
+    font-size: 1.125rem;
+    text-decoration: none;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    border: 2px solid #6B21A8;
+    box-shadow: 0 4px 16px rgba(107, 33, 168, 0.25);
+  }
+
+  .luma-button:hover {
+    background-color: #5B21B6;
+    border-color: #5B21B6;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(107, 33, 168, 0.4);
+  }
+
+  .luma-button:active {
+    transform: translateY(-1px);
+  }
+
+  .luma-button svg {
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 768px) {
+    .upcoming-events-section {
+      padding: 3rem 1rem;
+    }
+
+    .section-header {
+      margin-bottom: 2rem;
+    }
+
+    .title {
+      font-size: 2rem;
+    }
+
+    .subtitle {
+      display: none;
+    }
+
+    .events-grid {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
+    .card-image-link {
+      display: none;
+    }
+
+    .card-body {
+      padding: 1.25rem;
+    }
+
+    .event-title {
+      font-size: 1rem;
+    }
+
+    .luma-button {
+      font-size: 1rem;
+      padding: 0.875rem 1.5rem;
+    }
+  }
+</style>

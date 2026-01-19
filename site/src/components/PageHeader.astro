@@ -1,0 +1,70 @@
+---
+interface Props {
+  title: string;
+  description?: string;
+  centered?: boolean;
+  size?: 'default' | 'large';
+}
+
+const { 
+  title, 
+  description, 
+  centered = true,
+  size = 'default'
+} = Astro.props;
+---
+
+<header class:list={["page-header", { centered, large: size === 'large' }]}>
+  <h1>{title}</h1>
+  {description && <p class="description">{description}</p>}
+</header>
+
+<style>
+  .page-header {
+    margin-bottom: 3rem;
+  }
+
+  .page-header.centered {
+    text-align: center;
+  }
+
+  .page-header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin: 0 0 1rem 0;
+    color: #1f2937;
+    letter-spacing: -0.02em;
+  }
+
+  .page-header.large h1 {
+    font-size: 2.8rem;
+  }
+
+  .page-header .description {
+    font-size: 1.125rem;
+    line-height: 1.65;
+    color: rgba(0, 0, 0, 0.7);
+    margin: 0 auto;
+    max-width: 65ch;
+  }
+
+  /* Responsive design */
+  @media (max-width: 768px) {
+    .page-header {
+      margin-bottom: 2rem;
+    }
+
+    .page-header h1 {
+      font-size: 2rem;
+    }
+
+    .page-header.large h1 {
+      font-size: 2.25rem;
+    }
+
+    .page-header .description {
+      font-size: 1rem;
+    }
+  }
+</style>

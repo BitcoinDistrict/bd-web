@@ -1,0 +1,510 @@
+---
+import type { PodcastEpisode } from "../lib/directus";
+import { generateSlug } from "../lib/utils";
+import { getDirectusUrl } from "../lib/directus";
+import PodcastPlayer from "./PodcastPlayer.astro";
+
+export type Props = {
+  episodes: PodcastEpisode[];
+};
+
+const { episodes } = Astro.props;
+const DIRECTUS_URL = getDirectusUrl();
+
+// Sort episodes by air_date, newest first
+const sortedEpisodes = [...episodes].sort((a, b) => {
+  if (!a.air_date) return 1;
+  if (!b.air_date) return -1;
+  return new Date(b.air_date).getTime() - new Date(a.air_date).getTime();
+});
+
+const latestEpisode = sortedEpisodes[0];
+const olderEpisodes = sortedEpisodes.slice(1);
+
+const getCoverImageUrl = (episode: PodcastEpisode) => {
+  if (!episode.cover_image) {
+    console.log(`[PodcastList] No cover_image for episode: ${episode.title}`);
+    return null;
+  }
+  const url = typeof episode.cover_image === 'string'
+    ? `${DIRECTUS_URL}/assets/${episode.cover_image}?format=webp&quality=80&width=800`
+    : `${DIRECTUS_URL}/assets/${episode.cover_image.id}?format=webp&quality=80&width=800`;
+  console.log(`[PodcastList] Cover image URL for "${episode.title}": ${url}`);
+  return url;
+};
+
+const getAudioUrl = (episode: PodcastEpisode) => {
+  if (!episode.audio_file) {
+    console.log(`[PodcastList] No audio_file for episode: ${episode.title}`);
+    return null;
+  }
+  const url = typeof episode.audio_file === 'string'
+    ? `${DIRECTUS_URL}/assets/${episode.audio_file}`
+    : `${DIRECTUS_URL}/assets/${episode.audio_file.id}`;
+  console.log(`[PodcastList] Audio URL for "${episode.title}": ${url}`);
+  return url;
+};
+---
+
+<div class="podcast-list">
+  {episodes.length === 0 ? (
+    <p class="podcast-list__empty">No podcast episodes available yet. Check back soon!</p>
+  ) : (
+    <>
+      {/* Latest Episode - Featured with Player */}
+      {latestEpisode && (() => {
+        const latestSlug = generateSlug(latestEpisode.title);
+        const latestEpisodeUrl = `/podcast/${latestSlug}`;
+        return (
+          <article class="featured-episode">
+            <div class="featured-episode__layout">
+              {getCoverImageUrl(latestEpisode) && (
+                <a href={latestEpisodeUrl} class="featured-episode__image-link">
+                  <div class="featured-episode__image">
+                    <img
+                      src={getCoverImageUrl(latestEpisode)}
+                      alt={typeof latestEpisode.cover_image === 'object' && latestEpisode.cover_image?.title 
+                        ? latestEpisode.cover_image.title 
+                        : latestEpisode.title}
+                    />
+                  </div>
+                </a>
+              )}
+              <div class="featured-episode__content">
+                <h2 class="featured-episode__title">
+                  <a href={latestEpisodeUrl}>{latestEpisode.title}</a>
+                </h2>
+                {latestEpisode.air_date && (
+                  <time class="featured-episode__date" datetime={latestEpisode.air_date}>
+                    {new Date(latestEpisode.air_date).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
+                  </time>
+                )}
+                {latestEpisode.description && (
+                  <div 
+                    class="featured-episode__description" 
+                    set:html={latestEpisode.description}
+                  ></div>
+                )}
+              </div>
+            </div>
+            {getAudioUrl(latestEpisode) && (
+              <div class="featured-episode__player">
+                <PodcastPlayer audioUrl={getAudioUrl(latestEpisode)!} title={latestEpisode.title} />
+              </div>
+            )}
+          </article>
+        );
+      })()}
+
+      {/* Older Episodes - List */}
+      {olderEpisodes.length > 0 && (
+        <section class="older-episodes">
+          <h2 class="older-episodes__heading">Previous Episodes</h2>
+          <ul class="older-episodes__list">
+            {olderEpisodes.map((episode) => {
+              const slug = generateSlug(episode.title);
+              const coverImageUrl = getCoverImageUrl(episode);
+              
+              // Strip HTML and truncate description properly
+              const plainDescription = episode.description 
+                ? episode.description.replace(/<[^>]*>/g, '').trim()
+                : '';
+              const truncatedDescription = plainDescription.length > 150 
+                ? plainDescription.substring(0, 150) + '...'
+                : plainDescription;
+              
+              return (
+                <li class="episode-item">
+                  <a class="episode-item__link" href={`/podcast/${slug}`}>
+                    {coverImageUrl && (
+                      <div class="episode-item__image">
+                        <img
+                          src={coverImageUrl}
+                          alt={typeof episode.cover_image === 'object' && episode.cover_image?.title 
+                            ? episode.cover_image.title 
+                            : episode.title}
+                          loading="lazy"
+                        />
+                      </div>
+                    )}
+                    <div class="episode-item__content">
+                      <h3 class="episode-item__title">{episode.title}</h3>
+                      {episode.air_date && (
+                        <time class="episode-item__date" datetime={episode.air_date}>
+                          {new Date(episode.air_date).toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}
+                        </time>
+                      )}
+                      {truncatedDescription && (
+                        <p class="episode-item__description">
+                          {truncatedDescription}
+                        </p>
+                      )}
+                    </div>
+                    <div class="episode-item__arrow">
+                      →
+                    </div>
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+    </>
+  )}
+</div>
+
+<style>
+  .podcast-list__empty {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: rgba(0, 0, 0, 0.6);
+    font-size: 1.1rem;
+  }
+
+  /* Featured Episode */
+  .featured-episode {
+    background: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 3rem;
+  }
+
+  .featured-episode__layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 2rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .featured-episode__image-link {
+    display: block;
+    width: 280px;
+    height: 280px;
+    flex-shrink: 0;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #f5f5f5;
+    transition: transform 180ms ease, box-shadow 180ms ease;
+  }
+
+  .featured-episode__image-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  }
+
+  .featured-episode__image {
+    width: 100%;
+    height: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .featured-episode__image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 180ms ease;
+  }
+
+  .featured-episode__image-link:hover .featured-episode__image img {
+    transform: scale(1.05);
+  }
+
+  .featured-episode__content {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .featured-episode__title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin: 0 0 0.5rem 0;
+    color: #111;
+  }
+
+  .featured-episode__title a {
+    color: inherit;
+    text-decoration: none;
+    transition: color 150ms ease;
+  }
+
+  .featured-episode__title a:hover {
+    color: #667eea;
+  }
+
+  .featured-episode__date {
+    font-size: 0.95rem;
+    color: rgba(0, 0, 0, 0.6);
+    margin-bottom: 1rem;
+  }
+
+  .featured-episode__description {
+    font-size: 1rem;
+    line-height: 1.65;
+    color: rgba(0, 0, 0, 0.75);
+  }
+
+  .featured-episode__description :global(p) {
+    margin: 0 0 0.75rem 0;
+  }
+
+  .featured-episode__description :global(p:last-child) {
+    margin-bottom: 0;
+  }
+
+  .featured-episode__player {
+    margin-top: 1.5rem;
+  }
+
+  /* Older Episodes */
+  .older-episodes {
+    margin-top: 4rem;
+  }
+
+  .older-episodes__heading {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0 0 2rem 0;
+    color: #111;
+  }
+
+  .older-episodes__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .episode-item {
+    display: flex;
+  }
+
+  .episode-item__link {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.75rem;
+    width: 100%;
+    background: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 16px;
+    padding: 1.5rem;
+    text-decoration: none;
+    color: inherit;
+    transition:
+      transform 180ms ease,
+      box-shadow 180ms ease,
+      border-color 180ms ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .episode-item__link::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+    opacity: 0;
+    transition: opacity 180ms ease;
+  }
+
+  .episode-item__link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    border-color: rgba(0, 0, 0, 0.18);
+  }
+
+  .episode-item__link:hover::before {
+    opacity: 1;
+  }
+
+  .episode-item__image {
+    width: 120px;
+    height: 120px;
+    flex-shrink: 0;
+    border-radius: 12px;
+    overflow: hidden;
+    background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .episode-item__image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 180ms ease;
+  }
+
+  .episode-item__link:hover .episode-item__image img {
+    transform: scale(1.05);
+  }
+
+  .episode-item__content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .episode-item__title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    line-height: 1.3;
+    margin: 0;
+    color: #111;
+    transition: color 150ms ease;
+  }
+
+  .episode-item__link:hover .episode-item__title {
+    color: #667eea;
+  }
+
+  .episode-item__date {
+    font-size: 0.9rem;
+    color: rgba(0, 0, 0, 0.55);
+    display: block;
+    font-weight: 500;
+  }
+
+  .episode-item__description {
+    font-size: 0.975rem;
+    line-height: 1.6;
+    color: rgba(0, 0, 0, 0.7);
+    margin: 0.25rem 0 0 0;
+  }
+
+  .episode-item__arrow {
+    font-size: 1.75rem;
+    color: rgba(0, 0, 0, 0.25);
+    flex-shrink: 0;
+    margin-left: 1rem;
+    transition: transform 180ms ease, color 180ms ease;
+    align-self: center;
+  }
+
+  .episode-item__link:hover .episode-item__arrow {
+    transform: translateX(6px);
+    color: #667eea;
+  }
+
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .featured-episode {
+      padding: 1.5rem;
+    }
+
+    .featured-episode__layout {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
+    .featured-episode__image-link {
+      width: 100%;
+      max-width: 280px;
+      height: auto;
+      aspect-ratio: 1;
+      margin: 0 auto;
+    }
+
+    .featured-episode__image {
+      width: 100%;
+      height: 100%;
+    }
+
+    .featured-episode__title {
+      font-size: 1.5rem;
+    }
+
+    .older-episodes {
+      margin-top: 3rem;
+    }
+
+    .older-episodes__heading {
+      font-size: 1.65rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .older-episodes__list {
+      gap: 1.25rem;
+    }
+
+    .episode-item__link {
+      padding: 1.25rem;
+      gap: 1.25rem;
+    }
+
+    .episode-item__image {
+      width: 100px;
+      height: 100px;
+    }
+
+    .episode-item__title {
+      font-size: 1.2rem;
+    }
+
+    .episode-item__description {
+      font-size: 0.925rem;
+    }
+
+    .episode-item__arrow {
+      font-size: 1.5rem;
+      margin-left: 0.5rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .featured-episode {
+      padding: 1.25rem;
+    }
+
+    .featured-episode__title {
+      font-size: 1.35rem;
+    }
+
+    .older-episodes__heading {
+      font-size: 1.5rem;
+    }
+
+    .episode-item__link {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+      padding: 1rem;
+    }
+
+    .episode-item__image {
+      width: 100%;
+      height: auto;
+      aspect-ratio: 1;
+      max-width: none;
+    }
+
+    .episode-item__title {
+      font-size: 1.15rem;
+    }
+
+    .episode-item__arrow {
+      align-self: flex-end;
+      margin-left: 0;
+    }
+  }
+</style>

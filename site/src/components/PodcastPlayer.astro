@@ -1,0 +1,568 @@
+---
+interface PodcastPlayerProps {
+  audioUrl: string;
+  title?: string;
+  episodeTitle?: string;
+}
+
+const { audioUrl, title, episodeTitle } = Astro.props;
+const playerId = `podcast-player-${Math.random().toString(36).substr(2, 9)}`;
+---
+
+<div class="podcast-player-wrapper" data-player-id={playerId}>
+  <div class="podcast-player">
+    <audio id={playerId} preload="metadata">
+      <source src={audioUrl} type="audio/mpeg" />
+      Your browser does not support the audio element.
+    </audio>
+    
+    <div class="player-controls">
+      <!-- Play/Pause Button -->
+      <button class="play-button" aria-label="Play/Pause">
+        <svg class="play-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+        <svg class="pause-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+          <rect x="6" y="4" width="4" height="16"></rect>
+          <rect x="14" y="4" width="4" height="16"></rect>
+        </svg>
+      </button>
+
+      <!-- Time Display -->
+      <div class="time-display">
+        <span class="current-time">0:00</span>
+        <span class="duration">/ 0:00</span>
+      </div>
+
+      <!-- Scrub Slider -->
+      <div class="scrub-container">
+        <input 
+          type="range" 
+          class="scrub-slider" 
+          min="0" 
+          max="100" 
+          value="0" 
+          step="0.1"
+          aria-label="Seek"
+        />
+        <div class="scrub-track">
+          <div class="scrub-progress"></div>
+          <div class="scrub-thumb"></div>
+        </div>
+      </div>
+
+      <!-- Playback Speed -->
+      <button class="speed-button" aria-label="Playback Speed">
+        <span class="speed-text">1x</span>
+      </button>
+
+      <!-- Volume Controls -->
+      <div class="volume-controls">
+        <button class="mute-button" aria-label="Mute/Unmute">
+          <svg class="volume-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          </svg>
+          <svg class="mute-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <line x1="23" y1="9" x2="17" y2="15"></line>
+            <line x1="17" y1="9" x2="23" y2="15"></line>
+          </svg>
+        </button>
+        <div class="volume-slider-container">
+          <input 
+            type="range" 
+            class="volume-slider" 
+            min="0" 
+            max="100" 
+            value="100" 
+            step="1"
+            aria-label="Volume"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // @ts-nocheck - Client-side code, types are checked at runtime
+  (function() {
+    const playerId = document.currentScript?.previousElementSibling?.querySelector('[data-player-id]')?.getAttribute('data-player-id') || 
+                     document.querySelector('.podcast-player-wrapper[data-player-id]')?.getAttribute('data-player-id');
+    
+    if (!playerId) return;
+    
+    const audio = document.getElementById(playerId) as HTMLAudioElement | null;
+    if (!audio) return;
+
+    const wrapper = document.querySelector(`[data-player-id="${playerId}"]`) as HTMLElement | null;
+    if (!wrapper) return;
+
+    const playButton = wrapper.querySelector('.play-button') as HTMLButtonElement | null;
+    const playIcon = wrapper.querySelector('.play-icon') as HTMLElement | null;
+    const pauseIcon = wrapper.querySelector('.pause-icon') as HTMLElement | null;
+    const currentTimeEl = wrapper.querySelector('.current-time') as HTMLElement | null;
+    const durationEl = wrapper.querySelector('.duration') as HTMLElement | null;
+    const scrubSlider = wrapper.querySelector('.scrub-slider') as HTMLInputElement | null;
+    const scrubProgress = wrapper.querySelector('.scrub-progress') as HTMLElement | null;
+    const scrubThumb = wrapper.querySelector('.scrub-thumb') as HTMLElement | null;
+    const speedButton = wrapper.querySelector('.speed-button') as HTMLButtonElement | null;
+    const speedText = wrapper.querySelector('.speed-text') as HTMLElement | null;
+    const muteButton = wrapper.querySelector('.mute-button') as HTMLButtonElement | null;
+    const volumeIcon = wrapper.querySelector('.volume-icon') as HTMLElement | null;
+    const muteIcon = wrapper.querySelector('.mute-icon') as HTMLElement | null;
+    const volumeSlider = wrapper.querySelector('.volume-slider') as HTMLInputElement | null;
+
+    if (!playButton || !scrubSlider) return;
+
+    const speeds = [1, 1.25, 1.5, 1.75, 2];
+    let currentSpeedIndex = 0;
+
+    // Format time helper
+    function formatTime(seconds: number): string {
+      if (isNaN(seconds)) return '0:00';
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    // Update scrub slider position
+    function updateScrubPosition(): void {
+      if (!audio.duration) return;
+      const percent = (audio.currentTime / audio.duration) * 100;
+      scrubSlider.value = percent.toString();
+      if (scrubProgress) {
+        (scrubProgress as HTMLElement).style.width = `${percent}%`;
+      }
+      if (scrubThumb) {
+        (scrubThumb as HTMLElement).style.left = `${percent}%`;
+      }
+    }
+
+    // Update time display
+    function updateTimeDisplay(): void {
+      if (currentTimeEl) {
+        currentTimeEl.textContent = formatTime(audio.currentTime);
+      }
+      if (durationEl && audio.duration) {
+        durationEl.textContent = `/ ${formatTime(audio.duration)}`;
+      }
+    }
+
+    // Play/Pause
+    playButton.addEventListener('click', () => {
+      if (audio.paused) {
+        audio.play();
+        if (playIcon) (playIcon as HTMLElement).style.display = 'none';
+        if (pauseIcon) (pauseIcon as HTMLElement).style.display = 'block';
+      } else {
+        audio.pause();
+        if (playIcon) (playIcon as HTMLElement).style.display = 'block';
+        if (pauseIcon) (pauseIcon as HTMLElement).style.display = 'none';
+      }
+    });
+
+    // Scrub slider
+    let isDragging = false;
+    scrubSlider.addEventListener('input', (e: Event) => {
+      if (!audio.duration) return;
+      const target = e.target as HTMLInputElement;
+      const percent = parseFloat(target.value);
+      audio.currentTime = (percent / 100) * audio.duration;
+      updateScrubPosition();
+    });
+
+    scrubSlider.addEventListener('mousedown', () => { isDragging = true; });
+    scrubSlider.addEventListener('mouseup', () => { isDragging = false; });
+    scrubSlider.addEventListener('touchstart', () => { isDragging = true; });
+    scrubSlider.addEventListener('touchend', () => { isDragging = false; });
+
+    // Speed control
+    speedButton?.addEventListener('click', () => {
+      currentSpeedIndex = (currentSpeedIndex + 1) % speeds.length;
+      const speed = speeds[currentSpeedIndex];
+      audio.playbackRate = speed;
+      if (speedText) speedText.textContent = `${speed}x`;
+    });
+
+    // Mute/Volume
+    muteButton?.addEventListener('click', () => {
+      audio.muted = !audio.muted;
+      if (audio.muted) {
+        if (volumeIcon) (volumeIcon as HTMLElement).style.display = 'none';
+        if (muteIcon) (muteIcon as HTMLElement).style.display = 'block';
+      } else {
+        if (volumeIcon) (volumeIcon as HTMLElement).style.display = 'block';
+        if (muteIcon) (muteIcon as HTMLElement).style.display = 'none';
+      }
+    });
+
+    volumeSlider?.addEventListener('input', (e: Event) => {
+      const target = e.target as HTMLInputElement;
+      audio.volume = parseFloat(target.value) / 100;
+      audio.muted = audio.volume === 0;
+      if (audio.muted) {
+        if (volumeIcon) (volumeIcon as HTMLElement).style.display = 'none';
+        if (muteIcon) (muteIcon as HTMLElement).style.display = 'block';
+      } else {
+        if (volumeIcon) (volumeIcon as HTMLElement).style.display = 'block';
+        if (muteIcon) (muteIcon as HTMLElement).style.display = 'none';
+      }
+    });
+
+    // Audio event listeners
+    audio.addEventListener('loadedmetadata', () => {
+      updateTimeDisplay();
+      updateScrubPosition();
+    });
+
+    audio.addEventListener('timeupdate', () => {
+      if (!isDragging) {
+        updateScrubPosition();
+      }
+      updateTimeDisplay();
+    });
+
+    audio.addEventListener('ended', () => {
+      if (playIcon) (playIcon as HTMLElement).style.display = 'block';
+      if (pauseIcon) (pauseIcon as HTMLElement).style.display = 'none';
+      audio.currentTime = 0;
+      updateScrubPosition();
+    });
+
+    audio.addEventListener('play', () => {
+      if (playIcon) (playIcon as HTMLElement).style.display = 'none';
+      if (pauseIcon) (pauseIcon as HTMLElement).style.display = 'block';
+    });
+
+    audio.addEventListener('pause', () => {
+      if (playIcon) (playIcon as HTMLElement).style.display = 'block';
+      if (pauseIcon) (pauseIcon as HTMLElement).style.display = 'none';
+    });
+  })();
+</script>
+
+<style>
+  .podcast-player-wrapper {
+    width: 100%;
+    margin: 1.5rem 0;
+  }
+
+  .podcast-player {
+    width: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 16px;
+    padding: 1.5rem 2rem;
+    box-shadow: 0 10px 25px -5px rgba(102, 126, 234, 0.4);
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  .player-controls {
+    display: grid;
+    grid-template-columns: auto auto 1fr auto auto;
+    align-items: center;
+    gap: 1.5rem;
+    width: 100%;
+  }
+
+  /* Play Button */
+  .play-button {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .play-button:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+  }
+
+  .play-button svg,
+  .play-button .pause-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  /* Time Display */
+  .time-display {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    min-width: 90px;
+  }
+
+  .current-time {
+    color: white;
+  }
+
+  .duration {
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  /* Scrub Slider */
+  .scrub-container {
+    position: relative;
+    width: 100%;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+  }
+
+  .scrub-slider {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+    z-index: 2;
+    margin: 0;
+    padding: 0;
+  }
+
+  .scrub-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: white;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    position: relative;
+    z-index: 3;
+  }
+
+  .scrub-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: white;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .scrub-track {
+    position: absolute;
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .scrub-progress {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 3px;
+    width: 0%;
+    transition: width 0.1s linear;
+  }
+
+  .scrub-thumb {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    left: 0%;
+    pointer-events: none;
+    transition: left 0.1s linear;
+  }
+
+  /* Speed Button */
+  .speed-button {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: rgba(255, 255, 255, 0.9);
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.85rem;
+    transition: background-color 0.2s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .speed-button:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  /* Volume Controls */
+  .volume-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+  }
+
+  .mute-button {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.9);
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+  }
+
+  .mute-button:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .mute-button svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .volume-slider-container {
+    width: 80px;
+    height: 4px;
+    position: relative;
+  }
+
+  .volume-slider {
+    width: 100%;
+    height: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+    cursor: pointer;
+    outline: none;
+  }
+
+  .volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: white;
+    cursor: pointer;
+  }
+
+  .volume-slider::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: white;
+    cursor: pointer;
+    border: none;
+  }
+
+  /* Mobile Styles */
+  @media (max-width: 768px) {
+    .podcast-player {
+      padding: 1.25rem 1.5rem;
+    }
+
+    .player-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .play-button {
+      width: 44px;
+      height: 44px;
+      order: 1;
+    }
+
+    .play-button svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    .time-display {
+      order: 2;
+      font-size: 0.85rem;
+      min-width: auto;
+      flex: 1;
+    }
+
+    .speed-button {
+      order: 3;
+      padding: 0.4rem 0.6rem;
+      font-size: 0.8rem;
+    }
+
+    .volume-controls {
+      order: 4;
+    }
+
+    .volume-slider-container {
+      display: none;
+    }
+
+    /* Scrub slider on its own row */
+    .scrub-container {
+      order: 5;
+      flex-basis: 100%;
+      width: 100%;
+      margin-top: 0.5rem;
+      height: 48px;
+    }
+
+    .scrub-track {
+      height: 10px;
+    }
+
+    .scrub-slider::-webkit-slider-thumb {
+      width: 24px;
+      height: 24px;
+    }
+
+    .scrub-slider::-moz-range-thumb {
+      width: 24px;
+      height: 24px;
+    }
+
+    .scrub-thumb {
+      width: 24px;
+      height: 24px;
+    }
+
+    .scrub-progress {
+      background: rgba(255, 255, 255, 1);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .podcast-player {
+      padding: 1rem 1.25rem;
+    }
+
+    .player-controls {
+      gap: 0.75rem;
+    }
+  }
+</style>

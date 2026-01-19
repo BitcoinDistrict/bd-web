@@ -1,0 +1,172 @@
+---
+import EventsList from '../EventsList.astro';
+import caporangeImage from '../../assets/images/caporange.png';
+
+interface Props {
+  background?: 'white' | 'gray';
+  class?: string;
+}
+
+const { background = 'white', class: className = '' } = Astro.props;
+const bgClass = background === 'gray' ? 'bg-gray-50' : 'bg-white';
+---
+
+<section class={`events-section ${bgClass} ${className}`}>
+  <div class="container">
+    <div class="section-header">
+      <h2 class="title">Upcoming Events</h2>
+      <p class="subtitle">
+        Join us for meetups, workshops, and other Bitcoin-related events in the DMV area.
+      </p>
+    </div>
+
+    <a href="https://luma.com/bitcoindistrict" target="_blank" rel="noopener noreferrer" class="luma-calendar-card">
+      <img src={caporangeImage.src} alt="Bitcoin District Calendar" class="calendar-image" />
+      <div class="calendar-info">
+        <h3 class="calendar-title">View Full Calendar</h3>
+        <p class="calendar-description">Check out all our events on Luma</p>
+      </div>
+      <svg class="arrow-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 12h14M12 5l7 7-7 7"/>
+      </svg>
+    </a>
+    
+    <EventsList />
+  </div>
+</section>
+
+<style>
+  .events-section {
+    padding: 4rem 1rem;
+    width: 100%;
+  }
+
+  .bg-gray-50 {
+    background-color: #f9fafb;
+  }
+
+  .bg-white {
+    background-color: #ffffff;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .section-header {
+    margin-bottom: 2.5rem;
+    text-align: center;
+  }
+
+  .title {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #111827;
+    margin: 0 0 1rem 0;
+    line-height: 1.2;
+  }
+
+  .subtitle {
+    font-size: 1.125rem;
+    line-height: 1.6;
+    color: #4b5563;
+    margin: 0;
+  }
+
+  .luma-calendar-card {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    margin-bottom: 3rem;
+    background: #ffffff;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+  }
+
+  .luma-calendar-card:hover {
+    border-color: #f7931a;
+    box-shadow: 0 4px 12px rgba(247, 147, 26, 0.1);
+    transform: translateY(-2px);
+  }
+
+  .calendar-image {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+
+  .calendar-info {
+    flex: 1;
+  }
+
+  .calendar-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #111827;
+    margin: 0 0 0.25rem 0;
+  }
+
+  .calendar-description {
+    font-size: 0.95rem;
+    color: #6b7280;
+    margin: 0;
+  }
+
+  .arrow-icon {
+    color: #f7931a;
+    flex-shrink: 0;
+    transition: transform 0.3s ease;
+  }
+
+  .luma-calendar-card:hover .arrow-icon {
+    transform: translateX(4px);
+  }
+
+  @media (max-width: 768px) {
+    .events-section {
+      padding: 3rem 1rem;
+    }
+
+    .section-header {
+      margin-bottom: 2rem;
+    }
+
+    .title {
+      font-size: 2rem;
+    }
+
+    .subtitle {
+      font-size: 1rem;
+    }
+
+    .luma-calendar-card {
+      gap: 1rem;
+      padding: 1.25rem;
+      margin-bottom: 2rem;
+    }
+
+    .calendar-image {
+      width: 60px;
+      height: 60px;
+    }
+
+    .calendar-title {
+      font-size: 1.1rem;
+    }
+
+    .calendar-description {
+      font-size: 0.875rem;
+    }
+
+    .arrow-icon {
+      width: 20px;
+      height: 20px;
+    }
+  }
+</style>

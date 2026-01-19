@@ -1,0 +1,309 @@
+---
+export interface Props {
+  title?: string;
+  subtitle?: string;
+  placeholder?: string;
+  buttonText?: string;
+  variant?: 'default' | 'compact';
+  showName?: boolean;
+  label?: string;
+}
+
+const {
+  title = 'Subscribe to our newsletter',
+  subtitle = "Get the latest updates about Bitcoin in the District delivered to your inbox.",
+  placeholder = 'Enter your email',
+  buttonText = 'Subscribe',
+  variant = 'default',
+  showName = false,
+  label = 'Bitcoin District Newsletter'
+} = Astro.props;
+
+const isCompact = variant === 'compact';
+---
+
+<div class={`newsletter-subscribe ${isCompact ? 'compact' : ''}`}>
+  {!isCompact && (
+    <div class="text-center mb-6">
+      {title && <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">{title}</h2>}
+      {subtitle && <p class="text-gray-600 dark:text-gray-300">{subtitle}</p>}
+    </div>
+  )}
+
+  <form 
+    data-newsletter-form 
+    class="newsletter-form" 
+    action="https://bitcoindistrictinitiative.us11.list-manage.com/subscribe/post?u=15a85000da45e77900cfe72fa&amp;id=a19e080d89&amp;f_id=007799e0f0"
+    method="post"
+    id="mc-embedded-subscribe-form"
+    name="mc-embedded-subscribe-form"
+    novalidate
+  >
+    <!-- Mailchimp required fields -->
+    <input type="hidden" name="tags" value="9273791,9273797" />
+    <!-- Honeypot field (hidden) -->
+    <div aria-hidden="true" style="position: absolute; left: -5000px;">
+      <input type="text" name="b_15a85000da45e77900cfe72fa_a19e080d89" tabindex="-1" value="" />
+    </div>
+    
+    <div class={`flex flex-col ${isCompact ? 'sm:flex-row' : ''} gap-3`}>
+      {showName && !isCompact && (
+        <div>
+          <label for="name" class="sr-only">Name</label>
+          <input
+            type="text"
+            name="FNAME"
+            id="name"
+            autocomplete="name"
+            placeholder="Your name (optional)"
+            class="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 placeholder-gray-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
+            style="background-color: white !important; color: #111827 !important;"
+          />
+        </div>
+      )}
+      
+      <div class={isCompact ? 'flex-1' : ''}>
+        <label for="email" class="sr-only">Email address</label>
+        <input
+          type="email"
+          name="EMAIL"
+          id="email"
+          required
+          autocomplete="email"
+          inputmode="email"
+          placeholder={placeholder}
+          class={`w-full ${isCompact ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 placeholder-gray-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400 ${isCompact ? 'sm:rounded-r-none' : ''}`}
+          style="background-color: white !important; color: #111827 !important;"
+        />
+      </div>
+      
+      <button
+        type="submit"
+        name="subscribe"
+        id="mc-embedded-subscribe"
+        class={`${isCompact ? 'px-4 py-2 text-sm' : 'px-6 py-3'} bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${isCompact ? 'sm:rounded-l-none' : ''}`}
+      >
+        <span class="submit-text">{buttonText}</span>
+        <span class="loading-text hidden">
+          <svg class="inline w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Subscribing...
+        </span>
+      </button>
+    </div>
+
+    <!-- Status Messages -->
+    <div class="mt-4">
+      <div class="success-message hidden p-4 bg-green-50 border border-green-200 rounded-md dark:bg-green-900/20 dark:border-green-800">
+        <div class="flex">
+          <svg class="w-5 h-5 text-green-400 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+          </svg>
+          <div>
+            <h3 class="text-sm font-medium text-green-800 dark:text-green-200">Success!</h3>
+            <p class="text-sm text-green-700 dark:text-green-300 mt-1">Check your email to confirm your subscription.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="error-message hidden p-4 bg-red-50 border border-red-200 rounded-md dark:bg-red-900/20 dark:border-red-800">
+        <div class="flex">
+          <svg class="w-5 h-5 text-red-400 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+          </svg>
+          <div>
+            <h3 class="text-sm font-medium text-red-800 dark:text-red-200">Error</h3>
+            <p class="text-sm text-red-700 dark:text-red-300 mt-1 error-text">Something went wrong. Please try again.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+  
+  <noscript>
+    <div class="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md dark:bg-yellow-900/20 dark:border-yellow-800">
+      <p class="text-sm text-yellow-800 dark:text-yellow-200">
+        JavaScript is required for newsletter subscription. Please enable JavaScript to subscribe.
+      </p>
+    </div>
+  </noscript>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('Newsletter subscription script loaded');
+    const forms = document.querySelectorAll<HTMLFormElement>('[data-newsletter-form]');
+    console.log('Found newsletter forms:', forms.length);
+    
+    forms.forEach((form, index) => {
+      console.log(`Setting up form ${index}`);
+      form.addEventListener('submit', async function(e) {
+        console.log('Form submitted, preventing default');
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        const email = formData.get('EMAIL') as string;
+        const name = formData.get('FNAME') as string;
+        
+        console.log('Form data:', { email, name });
+        
+        if (!email) {
+          console.error('No email provided');
+          return;
+        }
+        
+        // Update UI state
+        const submitBtn = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+        const submitText = submitBtn?.querySelector('.submit-text');
+        const loadingText = submitBtn?.querySelector('.loading-text');
+        const successMessage = form.querySelector('.success-message');
+        const errorMessage = form.querySelector('.error-message');
+        const errorText = errorMessage?.querySelector('.error-text');
+        
+        console.log('Form elements found:', {
+          submitBtn: !!submitBtn,
+          submitText: !!submitText,
+          loadingText: !!loadingText,
+          successMessage: !!successMessage,
+          errorMessage: !!errorMessage,
+          errorText: !!errorText
+        });
+        
+        if (!submitBtn || !submitText || !loadingText || !successMessage || !errorMessage || !errorText) {
+          console.error('Required form elements not found');
+          alert('Form setup error. Please refresh the page and try again.');
+          return;
+        }
+        
+        // Reset states
+        successMessage.classList.add('hidden');
+        errorMessage.classList.add('hidden');
+        submitBtn.disabled = true;
+        submitText.classList.add('hidden');
+        loadingText.classList.remove('hidden');
+        
+        try {
+          console.log('Starting subscription process...');
+          
+          // Mailchimp form endpoint (using post-json for JSON response)
+          const mailchimpUrl = 'https://bitcoindistrictinitiative.us11.list-manage.com/subscribe/post-json?u=15a85000da45e77900cfe72fa&id=a19e080d89&f_id=007799e0f0';
+          
+          // Prepare form data for Mailchimp
+          const params = new URLSearchParams();
+          params.append('EMAIL', email);
+          if (name && name.trim()) {
+            params.append('FNAME', name.trim());
+          }
+          params.append('tags', '9273791,9273797');
+          // Honeypot field (should be empty)
+          params.append('b_15a85000da45e77900cfe72fa_a19e080d89', '');
+          
+          console.log('Sending subscription request to Mailchimp...');
+
+          // Use JSONP approach for Mailchimp (they support JSONP callback)
+          // Create a unique callback name
+          const callbackName = 'mailchimpCallback_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11);
+          
+          // Set up callback function
+          (window as any)[callbackName] = function(data: any) {
+            console.log('Mailchimp response:', data);
+            
+            // Clean up callback
+            delete (window as any)[callbackName];
+            
+            if (data.result === 'success') {
+              console.log('Subscription successful!');
+              successMessage.classList.remove('hidden');
+              form.reset();
+              
+              // Scroll to success message for better UX
+              successMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else {
+              console.log('Subscription failed:', data.msg);
+              let errorMsg = data.msg || 'Failed to subscribe to newsletter';
+              // Clean up Mailchimp error messages
+              errorMsg = errorMsg.replace(/^\d+\s*-\s*/, ''); // Remove leading numbers
+              errorText.textContent = errorMsg;
+              errorMessage.classList.remove('hidden');
+              errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            
+            // Reset button state
+            submitBtn.disabled = false;
+            submitText.classList.remove('hidden');
+            loadingText.classList.add('hidden');
+          };
+          
+          // Create script tag for JSONP request
+          const script = document.createElement('script');
+          script.src = `${mailchimpUrl}&${params.toString()}&c=${callbackName}`;
+          script.onerror = function() {
+            console.error('Script load error');
+            delete (window as any)[callbackName];
+            errorText.textContent = 'Failed to connect to newsletter service. Please try again later.';
+            errorMessage.classList.remove('hidden');
+            submitBtn.disabled = false;
+            submitText.classList.remove('hidden');
+            loadingText.classList.add('hidden');
+          };
+          
+          // Add script to page to trigger JSONP request
+          document.body.appendChild(script);
+          
+          // Clean up script tag after a timeout (in case callback never fires)
+          setTimeout(() => {
+            if (document.body.contains(script)) {
+              document.body.removeChild(script);
+            }
+          }, 30000); // 30 second timeout
+          
+        } catch (error) {
+          console.error('Newsletter subscription error:', error);
+          let errorMsg = 'Network error. Please check your connection and try again.';
+          
+          // Provide more specific error messages
+          if (error instanceof TypeError && error.message.includes('fetch')) {
+            errorMsg = 'Unable to connect to the newsletter service. Please try again later.';
+          } else if (error instanceof Error) {
+            errorMsg = error.message;
+          }
+          
+          errorText.textContent = errorMsg;
+          errorMessage.classList.remove('hidden');
+          errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          
+          // Reset button state
+          submitBtn.disabled = false;
+          submitText.classList.remove('hidden');
+          loadingText.classList.add('hidden');
+        }
+      });
+    });
+  });
+</script>
+
+<style>
+  .newsletter-subscribe.compact {
+    @apply max-w-md;
+  }
+  
+  .newsletter-subscribe:not(.compact) {
+    @apply max-w-lg mx-auto;
+  }
+  
+  @media (max-width: 640px) {
+    .newsletter-subscribe.compact .newsletter-form {
+      @apply flex-col;
+    }
+    
+    .newsletter-subscribe.compact button {
+      @apply rounded-md;
+    }
+    
+    .newsletter-subscribe.compact input[type="email"] {
+      @apply rounded-md;
+    }
+  }
+</style>

@@ -1,0 +1,410 @@
+---
+interface InputField {
+  type?: 'text' | 'email' | 'tel';
+  name: string;
+  label?: string;
+  autocomplete?: string;
+  placeholder?: string;
+  required?: boolean;
+}
+
+interface TextareaField {
+  name?: string;
+  label?: string;
+  placeholder?: string;
+  rows?: number;
+}
+
+interface Props {
+  inputs?: InputField[];
+  textarea?: TextareaField;
+  button?: string;
+  description?: string;
+  submitUrl: string;
+  recaptchaSiteKey?: string;
+}
+
+const {
+  inputs,
+  textarea,
+  button = 'Send Message',
+  description = '',
+  submitUrl,
+  recaptchaSiteKey,
+} = Astro.props;
+
+// Derive sensible autocomplete defaults based on field name/type
+const deriveAutocompleteToken = (fieldName: string, inputType: string): string => {
+  const normalized = (fieldName || '').toLowerCase().trim();
+
+  if (inputType === 'email' || normalized === 'email') return 'email';
+
+  if (
+    inputType === 'tel' ||
+    normalized === 'phone' ||
+    normalized === 'phone number' ||
+    normalized === 'telephone' ||
+    normalized === 'tel' ||
+    normalized === 'mobile'
+  ) {
+    return 'tel';
+  }
+
+  if (normalized === 'name' || normalized === 'full name' || normalized === 'fullname') return 'name';
+  if (normalized === 'first name' || normalized === 'firstname' || normalized === 'given-name') return 'given-name';
+  if (normalized === 'last name' || normalized === 'lastname' || normalized === 'family-name') return 'family-name';
+  if (normalized === 'organization' || normalized === 'organisation' || normalized === 'company') return 'organization';
+
+  return 'on';
+};
+
+// Convert a field name like "first_name" or "phone number" to a human-friendly placeholder
+const humanizeFieldName = (fieldName: string): string => {
+  const cleaned = (fieldName || '').replace(/[._-]+/g, ' ').trim();
+  return cleaned
+    .split(' ')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+};
+---
+
+<div class="contact-form-container">
+  <form id="contact-form" method="POST" action={submitUrl}>
+    <div class="form-grid">
+      {
+        inputs &&
+          inputs.map(
+            ({ type = 'text', name, label = '', autocomplete, placeholder = '', required = false }) =>
+              name && (
+                <div class="form-group">
+                  {(() => {
+                    const effectiveAutocomplete = autocomplete ?? deriveAutocompleteToken(name, type);
+                    const effectivePlaceholder = placeholder || label || humanizeFieldName(name);
+                    const accessibleLabel = label || humanizeFieldName(name);
+                    const isRequired = required || type === 'email' || name === 'email';
+                    return (
+                      <input
+                        type={type}
+                        name={name}
+                        id={name}
+                        autocomplete={effectiveAutocomplete}
+                        placeholder={effectivePlaceholder}
+                        aria-label={accessibleLabel}
+                        class="form-input"
+                        required={isRequired}
+                      />
+                    );
+                  })()}
+                </div>
+              )
+          )
+      }
+    </div>
+
+    {
+      textarea && (
+        <div class="form-group">
+          <textarea
+            id="textarea"
+            name={textarea.name ? textarea.name : 'message'}
+            rows={textarea.rows ? textarea.rows : 4}
+            placeholder={textarea.placeholder || textarea.label || 'Message'}
+            aria-label={textarea.label || 'Message'}
+            autocomplete="off"
+            required
+            class="form-input form-textarea"
+          />
+        </div>
+      )
+    }
+
+    {
+      button && (
+        <div class="form-submit">
+          <button type="submit" id="submit-button" class="submit-btn">
+            {button}
+          </button>
+        </div>
+      )
+    }
+
+    {
+      description && (
+        <div class="form-description">
+          <p set:html={description} />
+        </div>
+      )
+    }
+    
+    <!-- Hidden input for reCAPTCHA token (Formspree expects this field name) -->
+    {recaptchaSiteKey && (
+      <input type="hidden" id="g-recaptcha-response" name="g-recaptcha-response" />
+    )}
+  </form>
+</div>
+
+{recaptchaSiteKey && (
+  <script src={`https://www.google.com/recaptcha/api.js?render=${recaptchaSiteKey}`}></script>
+)}
+
+<script define:vars={{ recaptchaSiteKey }}>
+  function handleFormSuccess() {
+    const submitButton = document.getElementById('submit-button');
+    const form = document.getElementById('contact-form');
+    
+    if (submitButton) {
+      submitButton.textContent = 'Message sent successfully!';
+      submitButton.style.backgroundColor = '#10b981'; // Green color
+      submitButton.style.borderColor = '#10b981';
+      submitButton.disabled = true;
+    }
+    
+    if (form) {
+      form.reset();
+    }
+  }
+
+  function handleFormError(errorMessage) {
+    const submitButton = document.getElementById('submit-button');
+    if (submitButton) {
+      submitButton.textContent = 'Error - Please try again';
+      submitButton.style.backgroundColor = '#ef4444'; // Red color
+      submitButton.style.borderColor = '#ef4444';
+      submitButton.disabled = false;
+      
+      // Reset button text after 3 seconds
+      setTimeout(() => {
+        submitButton.textContent = 'Send Message';
+        submitButton.style.backgroundColor = '';
+        submitButton.style.borderColor = '';
+      }, 3000);
+    }
+    
+    console.error('Form submission error:', errorMessage);
+  }
+
+  // Handle form submission
+  const form = document.getElementById('contact-form');
+  
+  if (form) {
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const submitButton = document.getElementById('submit-button');
+      if (submitButton) {
+        submitButton.textContent = 'Sending...';
+        submitButton.disabled = true;
+      }
+      
+      try {
+        // Execute reCAPTCHA v3 if site key is configured
+        if (recaptchaSiteKey) {
+          console.log('reCAPTCHA v3: Starting verification', {
+            siteKey: recaptchaSiteKey,
+            grecaptchaExists: typeof window.grecaptcha !== 'undefined'
+          });
+          
+          await new Promise((resolve, reject) => {
+            // Check if grecaptcha exists (script may still be loading or blocked)
+            if (typeof window.grecaptcha === 'undefined') {
+              // Poll for grecaptcha to be available
+              const checkGrecaptcha = setInterval(() => {
+                if (typeof window.grecaptcha !== 'undefined') {
+                  clearInterval(checkGrecaptcha);
+                  clearTimeout(timeout);
+                  window.grecaptcha.ready(function() {
+                    window.grecaptcha.execute(recaptchaSiteKey, { action: 'submit' })
+                      .then(function(token) {
+                        const tokenInput = document.getElementById('g-recaptcha-response');
+                        if (tokenInput) {
+                          tokenInput.value = token;
+                          console.log('reCAPTCHA v3: Token set in hidden input', token.substring(0, 20) + '...');
+                          resolve(token);
+                        } else {
+                          reject(new Error('reCAPTCHA token input field not found'));
+                        }
+                      })
+                      .catch(reject);
+                  });
+                }
+              }, 50);
+              
+              // If script hasn't loaded after 3 seconds, it's likely blocked
+              const timeout = setTimeout(() => {
+                clearInterval(checkGrecaptcha);
+                reject(new Error('reCAPTCHA script failed to load. The reCAPTCHA script may be blocked by an ad blocker. Please disable ad blockers for this site and try again.'));
+              }, 3000);
+              
+              return;
+            }
+            
+            // Script is loaded, use grecaptcha.ready()
+            window.grecaptcha.ready(function() {
+              window.grecaptcha.execute(recaptchaSiteKey, { action: 'submit' })
+                .then(function(token) {
+                  const tokenInput = document.getElementById('g-recaptcha-response');
+                  if (tokenInput) {
+                    tokenInput.value = token;
+                    console.log('reCAPTCHA v3: Token set in hidden input', token.substring(0, 20) + '...');
+                    resolve(token);
+                  } else {
+                    reject(new Error('reCAPTCHA token input field not found'));
+                  }
+                })
+                .catch(reject);
+            });
+          });
+        }
+        
+        // Create FormData from form (will include the hidden input with token)
+        const formData = new FormData(form);
+        
+        // Debug: Log form data to verify token is included
+        console.log('Form data keys:', Array.from(formData.keys()));
+        const recaptchaValue = formData.get('g-recaptcha-response');
+        if (recaptchaValue) {
+          console.log('reCAPTCHA token in form data:', recaptchaValue.substring(0, 20) + '...');
+        } else if (recaptchaSiteKey) {
+          console.warn('WARNING: reCAPTCHA token not found in form data!');
+        }
+        
+        console.log('Form submission: Sending to', form.action);
+        const response = await fetch(form.action, {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+        
+        console.log('Form submission: Response status', response.status);
+        
+        if (response.ok) {
+          console.log('Form submission: Success');
+          handleFormSuccess();
+        } else {
+          const data = await response.json();
+          console.error('Form submission: Error response', data);
+          handleFormError(data.error || 'Failed to send message. Please try again.');
+        }
+      } catch (error) {
+        if (error.message && error.message.includes('reCAPTCHA')) {
+          console.error('reCAPTCHA error:', error);
+          handleFormError('reCAPTCHA verification failed. Please check your browser console for details or contact support.');
+        } else {
+          console.error('Form submission error:', error);
+          handleFormError('Network error. Please check your connection and try again.');
+        }
+        // Re-enable submit button on error
+        if (submitButton) {
+          submitButton.disabled = false;
+          submitButton.textContent = 'Send Message';
+        }
+      }
+    });
+  }
+</script>
+
+<style>
+  .contact-form-container {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .form-group {
+    margin-bottom: 1rem;
+  }
+
+  .form-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: var(--color-text, #1f2937);
+    background-color: var(--color-bg, #ffffff);
+    border: 1px solid var(--color-border, #d1d5db);
+    border-radius: 0.375rem;
+    transition: all 0.2s ease;
+    font-family: inherit;
+  }
+
+  .form-input:focus {
+    outline: none;
+    border-color: var(--color-primary, #f7931a);
+    box-shadow: 0 0 0 3px rgba(247, 147, 26, 0.1);
+  }
+
+  .form-input::placeholder {
+    color: var(--color-text-muted, #9ca3af);
+  }
+
+  .form-textarea {
+    resize: vertical;
+    min-height: 120px;
+  }
+
+  .form-submit {
+    margin-top: 1.5rem;
+  }
+
+  .submit-btn {
+    width: 100%;
+    padding: 0.75rem 1.5rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #ffffff;
+    background-color: var(--color-primary, #f7931a);
+    border: 2px solid var(--color-primary, #f7931a);
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+  }
+
+  .submit-btn:hover:not(:disabled) {
+    background-color: var(--color-primary-hover, #e8870e);
+    border-color: var(--color-primary-hover, #e8870e);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(247, 147, 26, 0.2);
+  }
+
+  .submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .form-description {
+    margin-top: 1rem;
+    text-align: center;
+    font-size: 0.875rem;
+    color: var(--color-text-muted, #6b7280);
+    line-height: 1.6;
+  }
+
+  .form-description :global(a) {
+    color: var(--color-primary, #f7931a);
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+
+  .form-description :global(a:hover) {
+    color: var(--color-primary-hover, #e8870e);
+    text-decoration: underline;
+  }
+
+  /* Responsive design */
+  @media (max-width: 640px) {
+    .form-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

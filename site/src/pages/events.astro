@@ -1,0 +1,22 @@
+---
+import Layout from '../layouts/Layout.astro';
+import EventsSection from '../components/sections/EventsSection.astro';
+
+const seo = {
+  title: 'Events',
+  description: 'Upcoming Bitcoin District events in the DMV area.',
+};
+---
+
+<Layout seo={seo}>
+  <main class="events-page">
+    <EventsSection background="white" />
+  </main>
+</Layout>
+
+<style>
+  .events-page {
+    width: 100%;
+    min-height: calc(100vh - 80px);
+  }
+</style>
