@@ -1,0 +1,145 @@
+---
+- name: Update apt cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+  tags: common
+
+- name: Upgrade all packages to the latest version
+  apt:
+    upgrade: dist
+    autoremove: yes
+    autoclean: yes
+  tags: common
+
+- name: Install essential packages
+  apt:
+    name:
+      - curl
+      - wget
+      - git
+      - vim
+      - htop
+      - net-tools
+      - dnsutils
+      - software-properties-common
+      - apt-transport-https
+      - ca-certificates
+      - gnupg
+      - lsb-release
+      - ufw
+      - fail2ban
+      - unattended-upgrades
+      - python3-pip
+      - rsync
+    state: present
+  tags: common
+
+- name: Set timezone to {{ timezone }}
+  timezone:
+    name: "{{ timezone }}"
+  tags: common
+
+- name: Set hostname to {{ server_hostname }}
+  hostname:
+    name: "{{ server_hostname }}"
+  tags: common
+
+- name: Update /etc/hosts with new hostname
+  lineinfile:
+    path: /etc/hosts
+    regexp: '^127\.0\.1\.1'
+    line: "127.0.1.1 {{ server_hostname }}"
+  tags: common
+
+- name: Create data mount directory if it doesn't exist
+  file:
+    path: "{{ data_mount }}"
+    state: directory
+    mode: '0755'
+  tags: common
+
+- name: Check if swap file exists
+  stat:
+    path: "{{ swap_location }}"
+  register: swap_file
+  tags: common
+
+- name: Create swap file
+  command: fallocate -l {{ swap_size_mb }}M {{ swap_location }}
+  when: not swap_file.stat.exists
+  tags: common
+
+- name: Set swap file permissions
+  file:
+    path: "{{ swap_location }}"
+    mode: '0600'
+  when: not swap_file.stat.exists
+  tags: common
+
+- name: Format swap file
+  command: mkswap {{ swap_location }}
+  when: not swap_file.stat.exists
+  tags: common
+
+- name: Enable swap file
+  command: swapon {{ swap_location }}
+  when: not swap_file.stat.exists
+  tags: common
+
+- name: Add swap file to fstab
+  lineinfile:
+    path: /etc/fstab
+    line: "{{ swap_location }} none swap sw 0 0"
+    state: present
+  tags: common
+
+- name: Configure swappiness
+  sysctl:
+    name: vm.swappiness
+    value: '10'
+    state: present
+    reload: yes
+  tags: common
+
+- name: Configure sysctl optimizations
+  sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: yes
+  loop:
+    - { name: 'net.core.rmem_max', value: '16777216' }
+    - { name: 'net.core.wmem_max', value: '16777216' }
+    - { name: 'net.ipv4.tcp_rmem', value: '4096 87380 16777216' }
+    - { name: 'net.ipv4.tcp_wmem', value: '4096 65536 16777216' }
+    - { name: 'net.ipv4.ip_local_port_range', value: '1024 65535' }
+    - { name: 'net.ipv4.tcp_tw_reuse', value: '1' }
+    - { name: 'fs.file-max', value: '65535' }
+  tags: common
+
+- name: Configure automatic security updates
+  copy:
+    dest: /etc/apt/apt.conf.d/50unattended-upgrades
+    content: |
+      Unattended-Upgrade::Allowed-Origins {
+          "${distro_id}:${distro_codename}-security";
+          "${distro_id}ESMApps:${distro_codename}-apps-security";
+          "${distro_id}ESM:${distro_codename}-infra-security";
+      };
+      Unattended-Upgrade::AutoFixInterruptedDpkg "true";
+      Unattended-Upgrade::MinimalSteps "true";
+      Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
+      Unattended-Upgrade::Remove-Unused-Dependencies "true";
+      Unattended-Upgrade::Automatic-Reboot "false";
+  tags: common
+
+- name: Enable automatic updates
+  copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Download-Upgradeable-Packages "1";
+      APT::Periodic::AutocleanInterval "7";
+      APT::Periodic::Unattended-Upgrade "1";
+  tags: common

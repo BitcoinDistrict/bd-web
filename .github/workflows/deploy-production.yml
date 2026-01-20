@@ -1,0 +1,164 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'README*.md'
+      - 'docs/**'
+      - '.cursor/**'
+
+env:
+  DEPLOY_USER: deploy
+  DEPLOY_HOST: ${{ secrets.PRODUCTION_HOST }}
+  DEPLOY_PATH: /home/deploy/bd-directus-astro
+
+jobs:
+  deploy:
+    name: Deploy to Production Server
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PRODUCTION_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Create production .env file
+        run: |
+          cat > .env << EOF
+          # PostgreSQL Configuration
+          POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+          POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+          
+          # Directus Configuration
+          DIRECTUS_KEY=${{ secrets.DIRECTUS_KEY }}
+          DIRECTUS_SECRET=${{ secrets.DIRECTUS_SECRET }}
+          DIRECTUS_ADMIN_EMAIL=${{ secrets.DIRECTUS_ADMIN_EMAIL }}
+          DIRECTUS_ADMIN_PASSWORD=${{ secrets.DIRECTUS_ADMIN_PASSWORD }}
+          
+          # Public URLs
+          PUBLIC_DIRECTUS_URL=https://staging.bitcoindistrict.org/admin
+          
+          # CMS Enable/Disable
+          PUBLIC_CMS_ENABLED=true
+          
+          # Directus Tokens
+          DIRECTUS_STATIC_TOKEN=${{ secrets.DIRECTUS_STATIC_TOKEN }}
+          DIRECTUS_EVENTS_TOKEN=${{ secrets.DIRECTUS_EVENTS_TOKEN }}
+          EOF
+
+      - name: Sync files to server
+        run: |
+          rsync -avz --delete \
+            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+            --exclude '.git' \
+            --exclude '.github' \
+            --exclude 'node_modules' \
+            --exclude '.env' \
+            --exclude 'directus/data' \
+            --exclude '.cursor' \
+            --exclude 'site/node_modules' \
+            --exclude 'site/dist' \
+            ./ ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }}:${{ env.DEPLOY_PATH }}/
+
+      - name: Copy .env file to server
+        run: |
+          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            .env ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }}:${{ env.DEPLOY_PATH }}/.env
+
+      - name: Copy Caddyfile to system location
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} \
+            "sudo cp ${{ env.DEPLOY_PATH }}/Caddyfile /etc/caddy/Caddyfile"
+
+      - name: Deploy with Docker Compose
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'ENDSSH'
+          set -e
+          cd ${{ env.DEPLOY_PATH }}
+          
+          echo "Pulling latest Docker images..."
+          docker compose -f docker-compose.prod.yml pull
+          
+          echo "Building and starting containers..."
+          docker compose -f docker-compose.prod.yml up -d --build --remove-orphans
+          
+          echo "Waiting for services to be healthy..."
+          sleep 10
+          
+          echo "Checking container status..."
+          docker compose -f docker-compose.prod.yml ps
+          ENDSSH
+
+      - name: Reload Caddy
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} \
+            "sudo systemctl reload caddy || sudo systemctl restart caddy"
+
+      - name: Verify deployment
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'ENDSSH'
+          set -e
+          cd ${{ env.DEPLOY_PATH }}
+          
+          echo "=== Container Status ==="
+          docker compose -f docker-compose.prod.yml ps
+          
+          echo ""
+          echo "=== Caddy Status ==="
+          sudo systemctl status caddy --no-pager || true
+          
+          echo ""
+          echo "=== Recent Logs ==="
+          docker compose -f docker-compose.prod.yml logs --tail=20
+          ENDSSH
+
+      - name: Health check
+        run: |
+          echo "Waiting for services to be ready..."
+          sleep 15
+          
+          echo "Testing main site..."
+          curl -f -k https://staging.bitcoindistrict.org/ || echo "Main site not responding yet"
+          
+          echo "Testing admin panel..."
+          curl -f -k https://staging.bitcoindistrict.org/admin || echo "Admin panel not responding yet"
+
+      - name: Clean up SSH key
+        if: always()
+        run: |
+          rm -f ~/.ssh/deploy_key
+
+      - name: Deployment summary
+        if: success()
+        run: |
+          echo "✅ Deployment completed successfully!"
+          echo "🌐 Main site: https://staging.bitcoindistrict.org"
+          echo "⚙️  Admin panel: https://staging.bitcoindistrict.org/admin"
+          echo "📝 Commit: ${{ github.sha }}"
+          echo "👤 Deployed by: ${{ github.actor }}"
+
+      - name: Deployment failed
+        if: failure()
+        run: |
+          echo "❌ Deployment failed!"
+          echo "Check the logs above for details."
+          echo "You can manually check the server with:"
+          echo "ssh deploy@${{ secrets.PRODUCTION_HOST }}"
+          exit 1

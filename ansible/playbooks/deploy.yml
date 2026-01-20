@@ -1,0 +1,70 @@
+---
+- name: Deploy Bitcoin District application
+  hosts: bitcoindistrict
+  become: yes
+  become_user: "{{ app_user }}"
+  gather_facts: yes
+
+  vars:
+    git_repo: "https://github.com/YOUR_USERNAME/bd-directus-astro.git"
+    git_branch: main
+
+  tasks:
+    - name: Ensure application directory exists
+      file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode: '0755'
+
+    - name: Pull latest code from GitHub
+      git:
+        repo: "{{ git_repo }}"
+        dest: "{{ app_dir }}"
+        version: "{{ git_branch }}"
+        force: yes
+      when: git_repo is defined
+
+    - name: Check if .env file exists
+      stat:
+        path: "{{ app_dir }}/.env"
+      register: env_file
+
+    - name: Warning if .env file is missing
+      debug:
+        msg: "WARNING: .env file not found. Please create it with production secrets."
+      when: not env_file.stat.exists
+
+    - name: Pull latest Docker images
+      command: docker compose -f docker-compose.prod.yml pull
+      args:
+        chdir: "{{ app_dir }}"
+      when: env_file.stat.exists
+
+    - name: Build and start Docker containers
+      command: docker compose -f docker-compose.prod.yml up -d --build
+      args:
+        chdir: "{{ app_dir }}"
+      when: env_file.stat.exists
+
+    - name: Wait for containers to be healthy
+      command: docker compose -f docker-compose.prod.yml ps
+      args:
+        chdir: "{{ app_dir }}"
+      register: container_status
+      retries: 5
+      delay: 10
+      until: container_status.rc == 0
+      when: env_file.stat.exists
+
+    - name: Reload Caddy configuration
+      command: systemctl reload caddy
+      become: yes
+      become_user: root
+      when: env_file.stat.exists
+
+    - name: Display deployment status
+      debug:
+        msg: "Deployment completed successfully!"
+      when: env_file.stat.exists

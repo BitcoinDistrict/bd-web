@@ -203,8 +203,15 @@ Generate a static token in Directus: **Settings > Access Tokens > Create New Tok
 
 ## 📚 Documentation
 
+### Development
 - **[Architecture Guide](README-ARCHITECTURE.md)**: Detailed technical architecture and design decisions
 - **[Troubleshooting Guide](README-TROUBLESHOOTING.md)**: Common issues and solutions
+
+### Production Deployment
+- **[Quick Start Guide](DEPLOYMENT-QUICKSTART.md)**: 30-minute production setup ⚡
+- **[Full Deployment Guide](README-DEPLOYMENT.md)**: Comprehensive deployment documentation
+- **[Infrastructure Overview](INFRASTRUCTURE.md)**: Complete infrastructure reference
+- **[Ansible Guide](ansible/README.md)**: Infrastructure automation with Ansible
 
 ## 🔧 Development
 

@@ -1,0 +1,65 @@
+---
+- name: Create deploy group
+  group:
+    name: "{{ app_group }}"
+    state: present
+  tags: deploy-user
+
+- name: Create deploy user
+  user:
+    name: "{{ app_user }}"
+    group: "{{ app_group }}"
+    groups: docker,sudo
+    shell: /bin/bash
+    create_home: yes
+    home: "/home/{{ app_user }}"
+  tags: deploy-user
+
+- name: Create .ssh directory for deploy user
+  file:
+    path: "/home/{{ app_user }}/.ssh"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    mode: '0700'
+  tags: deploy-user
+
+- name: Create authorized_keys file for deploy user
+  file:
+    path: "/home/{{ app_user }}/.ssh/authorized_keys"
+    state: touch
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    mode: '0600'
+  tags: deploy-user
+
+- name: Create application directory
+  file:
+    path: "{{ app_dir }}"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    mode: '0755'
+  tags: deploy-user
+
+- name: Configure passwordless sudo for deploy user for docker commands
+  copy:
+    dest: /etc/sudoers.d/deploy
+    content: |
+      {{ app_user }} ALL=(ALL) NOPASSWD: /usr/bin/docker, /usr/bin/docker-compose, /usr/bin/systemctl restart caddy, /usr/bin/systemctl reload caddy, /usr/bin/systemctl status caddy
+    mode: '0440'
+    validate: 'visudo -cf %s'
+  tags: deploy-user
+
+- name: Create data directories on volume
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    mode: '0755'
+  loop:
+    - "{{ data_mount }}/postgres"
+    - "{{ data_mount }}/directus-uploads"
+    - "{{ data_mount }}/caddy-data"
+  tags: deploy-user

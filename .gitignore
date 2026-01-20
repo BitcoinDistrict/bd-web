@@ -12,3 +12,20 @@ db-backups/
 site/.git.bak/
 
 .directus-template-cli/
+
+# Deployment and Infrastructure
+ansible/*.retry
+ansible/.vault_pass
+deploy_key
+deploy_key.pub
+*.pem
+*.key
+
+# Ansible dynamic inventory
+ansible/inventory/*.ini
+
+# Backups
+backups/
+
+# Logs
+*.log

@@ -1,0 +1,8 @@
+---
+production:
+  hosts:
+    bitcoindistrict:
+      ansible_host: 104.236.1.164
+      ansible_user: root  # Will be 'deploy' after initial setup
+      ansible_port: 22
+      ansible_python_interpreter: /usr/bin/python3
