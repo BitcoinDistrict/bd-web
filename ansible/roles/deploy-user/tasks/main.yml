@@ -46,7 +46,7 @@
   copy:
     dest: /etc/sudoers.d/deploy
     content: |
-      {{ app_user }} ALL=(ALL) NOPASSWD: /usr/bin/docker, /usr/bin/docker-compose, /usr/bin/systemctl restart caddy, /usr/bin/systemctl reload caddy, /usr/bin/systemctl status caddy
+      {{ app_user }} ALL=(ALL) NOPASSWD: /usr/bin/docker, /usr/bin/docker-compose, /usr/bin/systemctl restart caddy, /usr/bin/systemctl reload caddy, /usr/bin/systemctl status caddy, /usr/bin/cp
     mode: '0440'
     validate: 'visudo -cf %s'
   tags: deploy-user
