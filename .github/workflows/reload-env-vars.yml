@@ -1,0 +1,223 @@
+name: Reload Environment Variables
+
+on:
+  workflow_dispatch:
+    inputs:
+      restart_services:
+        description: 'Services to restart (all, directus, astro, or both)'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - directus
+          - astro
+          - both
+
+env:
+  DEPLOY_USER: deploy
+  DEPLOY_HOST: ${{ secrets.PRODUCTION_HOST }}
+  DEPLOY_PATH: /home/deploy/bd-web
+
+jobs:
+  reload-env:
+    name: Reload Environment Variables
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Display reload information
+        run: |
+          echo "🔄 Environment Variables Reload Triggered"
+          echo "========================================="
+          echo "Services: ${{ github.event.inputs.restart_services }}"
+          echo "Triggered by: ${{ github.actor }}"
+          echo "========================================="
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PRODUCTION_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Create production .env file
+        run: |
+          cat > .env << EOF
+          # PostgreSQL Configuration
+          POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+          POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+          
+          # Directus Configuration
+          DIRECTUS_KEY=${{ secrets.DIRECTUS_KEY }}
+          DIRECTUS_SECRET=${{ secrets.DIRECTUS_SECRET }}
+          DIRECTUS_ADMIN_EMAIL=${{ secrets.DIRECTUS_ADMIN_EMAIL }}
+          DIRECTUS_ADMIN_PASSWORD=${{ secrets.DIRECTUS_ADMIN_PASSWORD }}
+          
+          # Public URLs
+          PUBLIC_DIRECTUS_URL=https://admin.bitcoindistrict.org
+          
+          # CMS Enable/Disable
+          PUBLIC_CMS_ENABLED=${{ secrets.PUBLIC_CMS_ENABLED || 'true' }}
+          
+          # Directus Tokens
+          DIRECTUS_STATIC_TOKEN=${{ secrets.DIRECTUS_STATIC_TOKEN }}
+          DIRECTUS_EVENTS_TOKEN=${{ secrets.DIRECTUS_EVENTS_TOKEN }}
+          EOF
+
+      - name: Backup current .env file
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'ENDSSH'
+          set -e
+          cd ${{ env.DEPLOY_PATH }}
+          
+          if [ -f .env ]; then
+            echo "Backing up current .env file..."
+            cp .env .env.backup.$(date +%Y%m%d_%H%M%S)
+            
+            # Keep only last 5 backups
+            ls -t .env.backup.* 2>/dev/null | tail -n +6 | xargs -r rm -f
+            echo "✅ Backup created"
+          else
+            echo "No existing .env file to backup"
+          fi
+          ENDSSH
+
+      - name: Copy new .env file to server
+        run: |
+          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            .env ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }}:${{ env.DEPLOY_PATH }}/.env
+          echo "✅ New .env file uploaded"
+
+      - name: Restart all services
+        if: github.event.inputs.restart_services == 'all'
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'ENDSSH'
+          set -e
+          cd ${{ env.DEPLOY_PATH }}
+          
+          echo "Restarting all services with new environment variables..."
+          docker compose -f docker-compose.prod.yml up -d --force-recreate --no-build
+          
+          echo "Waiting for services to be healthy..."
+          sleep 15
+          
+          echo "Checking container status..."
+          docker compose -f docker-compose.prod.yml ps
+          ENDSSH
+
+      - name: Restart Directus only
+        if: github.event.inputs.restart_services == 'directus'
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'ENDSSH'
+          set -e
+          cd ${{ env.DEPLOY_PATH }}
+          
+          echo "Restarting Directus with new environment variables..."
+          docker compose -f docker-compose.prod.yml up -d --force-recreate --no-deps --no-build directus
+          
+          echo "Waiting for Directus to be healthy..."
+          sleep 10
+          
+          echo "Checking container status..."
+          docker compose -f docker-compose.prod.yml ps directus
+          ENDSSH
+
+      - name: Restart Astro only
+        if: github.event.inputs.restart_services == 'astro'
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'ENDSSH'
+          set -e
+          cd ${{ env.DEPLOY_PATH }}
+          
+          echo "Restarting Astro with new environment variables..."
+          docker compose -f docker-compose.prod.yml up -d --force-recreate --no-deps --no-build astro
+          
+          echo "Waiting for Astro to be ready..."
+          sleep 10
+          
+          echo "Checking container status..."
+          docker compose -f docker-compose.prod.yml ps astro
+          ENDSSH
+
+      - name: Restart Directus and Astro
+        if: github.event.inputs.restart_services == 'both'
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'ENDSSH'
+          set -e
+          cd ${{ env.DEPLOY_PATH }}
+          
+          echo "Restarting Directus and Astro with new environment variables..."
+          docker compose -f docker-compose.prod.yml up -d --force-recreate --no-deps --no-build directus astro
+          
+          echo "Waiting for services to be healthy..."
+          sleep 15
+          
+          echo "Checking container status..."
+          docker compose -f docker-compose.prod.yml ps directus astro
+          ENDSSH
+
+      - name: Verify services
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'ENDSSH'
+          set -e
+          cd ${{ env.DEPLOY_PATH }}
+          
+          echo "=== Container Status ==="
+          docker compose -f docker-compose.prod.yml ps
+          
+          echo ""
+          echo "=== Recent Logs ==="
+          docker compose -f docker-compose.prod.yml logs --tail=20
+          ENDSSH
+
+      - name: Health check
+        run: |
+          echo "Waiting for services to be ready..."
+          sleep 10
+          
+          echo "Testing main site..."
+          curl -f -k https://staging.bitcoindistrict.org/ || echo "Main site not responding yet"
+          
+          echo "Testing admin panel..."
+          curl -f -k https://admin.bitcoindistrict.org || echo "Admin panel not responding yet"
+
+      - name: Clean up
+        if: always()
+        run: |
+          rm -f ~/.ssh/deploy_key
+          rm -f .env
+
+      - name: Reload summary
+        if: success()
+        run: |
+          echo "✅ Environment variables reloaded successfully!"
+          echo "========================================="
+          echo "🔄 Services restarted: ${{ github.event.inputs.restart_services }}"
+          echo "👤 Reloaded by: ${{ github.actor }}"
+          echo "🌐 Main site: https://staging.bitcoindistrict.org"
+          echo "⚙️  Admin panel: https://admin.bitcoindistrict.org"
+          echo "========================================="
+
+      - name: Reload failed
+        if: failure()
+        run: |
+          echo "❌ Environment reload failed!"
+          echo "========================================="
+          echo "Check the logs above for details."
+          echo "You can manually check the server with:"
+          echo "ssh deploy@${{ secrets.PRODUCTION_HOST }}"
+          echo "cd ${{ env.DEPLOY_PATH }}"
+          echo ""
+          echo "To restore previous .env:"
+          echo "cp .env.backup.* .env"
+          echo "docker compose -f docker-compose.prod.yml up -d --force-recreate"
+          echo "========================================="
+          exit 1
