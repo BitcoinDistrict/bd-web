@@ -9,11 +9,16 @@
       file:
         path: "{{ data_mount }}/directus-uploads"
         state: directory
-        owner: '1000'
-        group: '1000'
+        owner: '999'
+        group: '999'
         mode: '0755'
         recurse: yes
       tags: fix-permissions
+    
+    - name: Fix Directus uploads file permissions
+      command: find {{ data_mount }}/directus-uploads -type f -exec chmod 644 {} +
+      tags: fix-permissions
+      ignore_errors: yes
     
     - name: Fix PostgreSQL data directory ownership and permissions
       file:

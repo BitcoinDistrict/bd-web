@@ -65,6 +65,9 @@ services:
       RATE_LIMITER_POINTS: "50"
       RATE_LIMITER_DURATION: "1"
       ASSETS_CACHE_TTL: "30d"
+      # Public asset access - CRITICAL for frontend to access images/audio
+      # This ensures the Public role can read files without authentication
+      PUBLIC_REGISTRATION: "false"
     volumes:
       - /mnt/data/directus-uploads:/directus/uploads
       - ./directus/extensions:/directus/extensions

@@ -104,6 +104,21 @@ jobs:
           sudo chmod 644 /etc/caddy/Caddyfile
           ENDSSH
 
+      - name: Ensure correct permissions on data directories
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'ENDSSH'
+          set -e
+          
+          echo "Setting correct ownership on Directus uploads..."
+          sudo chown -R 999:999 /mnt/data/directus-uploads
+          sudo find /mnt/data/directus-uploads -type d -exec chmod 755 {} + 2>/dev/null || true
+          sudo find /mnt/data/directus-uploads -type f -exec chmod 644 {} + 2>/dev/null || true
+          
+          echo "Setting correct ownership on PostgreSQL data..."
+          sudo chown -R 70:70 /mnt/data/postgres 2>/dev/null || true
+          ENDSSH
+
       - name: Deploy with Docker Compose
         run: |
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
