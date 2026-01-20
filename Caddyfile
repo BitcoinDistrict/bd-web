@@ -25,6 +25,7 @@ staging.bitcoindistrict.org {
 
     # Directus admin UI and API
     # All requests to /admin/* route to Directus
+    # Using handle_path strips /admin prefix before proxying
     handle_path /admin* {
         reverse_proxy http://localhost:8055 {
             # Forward real client information
@@ -33,6 +34,7 @@ staging.bitcoindistrict.org {
             header_up X-Forwarded-For {remote_host}
             header_up X-Forwarded-Proto {scheme}
             header_up X-Forwarded-Host {host}
+            header_up X-Forwarded-Prefix /admin
             
             # Timeouts for longer operations
             transport http {
