@@ -12,7 +12,7 @@ on:
 env:
   DEPLOY_USER: deploy
   DEPLOY_HOST: ${{ secrets.PRODUCTION_HOST }}
-  DEPLOY_PATH: /home/deploy/bd-directus-astro
+  DEPLOY_PATH: /home/deploy/bd-web
 
 jobs:
   deploy:

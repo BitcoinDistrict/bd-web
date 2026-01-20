@@ -48,16 +48,15 @@ pip install ansible
 
 ## Quick Start
 
-### 1. Configure Inventory
+### 1. Configure Environment
 
-Edit `inventory/production.yml` if your server IP differs:
+The inventory uses an environment variable to avoid committing the server IP. Set it before running any Ansible commands:
 
-```yaml
-production:
-  hosts:
-    bitcoindistrict:
-      ansible_host: YOUR_SERVER_IP
+```bash
+export BD_WEB_HOST=YOUR_SERVER_IP
 ```
+
+Alternatively, add it to your `.env` file (see `env.example` at the project root).
 
 ### 2. Test Connection
 

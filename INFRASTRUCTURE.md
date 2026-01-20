@@ -16,7 +16,7 @@ This document provides an overview of the Bitcoin District production infrastruc
 
 - **Provider**: Digital Ocean
 - **OS**: Ubuntu 24.04 LTS
-- **IP**: 104.236.1.164
+- **IP**: YOUR_SERVER_IP
 - **Domain**: staging.bitcoindistrict.org
 - **Storage**: 5GB volume at `/mnt/data`
 
@@ -158,7 +158,7 @@ Performs:
 
 ```bash
 # Application logs
-ssh deploy@104.236.1.164
+ssh deploy@YOUR_SERVER_IP
 cd ~/bd-directus-astro
 docker compose -f docker-compose.prod.yml logs -f
 
@@ -203,7 +203,7 @@ Manual deployments create backups in `~/backups/`:
 ### Database Backups
 
 ```bash
-ssh deploy@104.236.1.164
+ssh deploy@YOUR_SERVER_IP
 cd ~/bd-directus-astro
 ./scripts/backup-database.sh
 ```
@@ -257,10 +257,10 @@ graph LR
 
 ```bash
 # As deploy user (for deployments)
-ssh deploy@104.236.1.164
+ssh deploy@YOUR_SERVER_IP
 
 # As root (emergency only)
-ssh root@104.236.1.164
+ssh root@YOUR_SERVER_IP
 ```
 
 ### GitHub Actions
@@ -365,7 +365,7 @@ If needed:
 
 - **Documentation**: This repository
 - **GitHub Actions**: Actions tab in repository
-- **Server Access**: SSH to 104.236.1.164
+- **Server Access**: SSH to YOUR_SERVER_IP
 - **DNS**: Cloudflare dashboard
 
 ## Version History
@@ -380,4 +380,4 @@ If needed:
 
 **Last Updated**: 2026-01-20  
 **Maintained By**: Bitcoin District Team  
-**Server**: staging.bitcoindistrict.org (104.236.1.164)
+**Server**: staging.bitcoindistrict.org (YOUR_SERVER_IP)

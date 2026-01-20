@@ -1,13 +1,13 @@
 ---
 # Server configuration
 domain: staging.bitcoindistrict.org
-server_hostname: bitcoindistrict-prod
+server_hostname: bd-web
 timezone: UTC
 
 # Application configuration
 app_user: deploy
 app_group: deploy
-app_dir: /home/deploy/bd-directus-astro
+app_dir: /home/deploy/bd-web
 data_mount: /mnt/data
 
 # System configuration

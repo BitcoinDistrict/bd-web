@@ -11,7 +11,7 @@ The Bitcoin District production infrastructure is now fully configured and ready
 ansible/
 ├── ansible.cfg                      ✅ Ansible configuration
 ├── inventory/
-│   └── production.yml               ✅ Server inventory (104.236.1.164)
+│   └── production.yml               ✅ Server inventory (YOUR_SERVER_IP)
 ├── group_vars/
 │   └── production.yml               ✅ Production variables
 ├── playbooks/
@@ -133,7 +133,7 @@ Internet (HTTPS)
     ↓
 Cloudflare DNS (staging.bitcoindistrict.org)
     ↓
-Digital Ocean Droplet (104.236.1.164)
+Digital Ocean Droplet (YOUR_SERVER_IP)
     ↓
 Caddy Reverse Proxy (:80, :443)
     ├─ /admin → Directus :8055
@@ -186,13 +186,13 @@ ansible-playbook -i inventory/production.yml playbooks/initial-setup.yml
 
 ```bash
 ssh-keygen -t ed25519 -f ~/.ssh/deploy_key -C "github-actions-deploy" -N ""
-ssh root@104.236.1.164 "cat >> /home/deploy/.ssh/authorized_keys" < ~/.ssh/deploy_key.pub
+ssh root@YOUR_SERVER_IP "cat >> /home/deploy/.ssh/authorized_keys" < ~/.ssh/deploy_key.pub
 ```
 
 ### 3. Configure DNS (~5 minutes)
 
 In Cloudflare:
-- Add A record: `staging` → `104.236.1.164`
+- Add A record: `staging` → `YOUR_SERVER_IP`
 - Proxy status: DNS only (gray cloud)
 
 ### 4. Add GitHub Secrets (~10 minutes)
@@ -326,10 +326,10 @@ Subsequent deployments: ~5 minutes (automatic)
 
 ```bash
 # View deployment logs
-ssh deploy@104.236.1.164 "cd ~/bd-directus-astro && docker compose -f docker-compose.prod.yml logs -f"
+ssh deploy@YOUR_SERVER_IP "cd ~/bd-directus-astro && docker compose -f docker-compose.prod.yml logs -f"
 
 # Check status
-ssh deploy@104.236.1.164 "cd ~/bd-directus-astro && docker compose -f docker-compose.prod.yml ps"
+ssh deploy@YOUR_SERVER_IP "cd ~/bd-directus-astro && docker compose -f docker-compose.prod.yml ps"
 
 # Manual deployment
 cd ansible
@@ -368,5 +368,5 @@ Your production infrastructure is ready to deploy the Bitcoin District website w
 
 **Created**: 2026-01-20  
 **Status**: Ready for deployment  
-**Server**: 104.236.1.164  
+**Server**: YOUR_SERVER_IP  
 **Domain**: staging.bitcoindistrict.org

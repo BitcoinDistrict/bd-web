@@ -1,6 +1,6 @@
 ---
 - name: Maintenance tasks for Bitcoin District server
-  hosts: bitcoindistrict
+  hosts: bd-web
   become: yes
   gather_facts: yes
 

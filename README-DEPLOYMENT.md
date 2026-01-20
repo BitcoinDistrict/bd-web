@@ -57,7 +57,7 @@ Before starting, ensure you have:
 
 2. **Digital Ocean Droplet**:
    - Ubuntu 24.04 LTS
-   - IP: 104.236.1.164 (or your actual IP)
+   - IP: YOUR_SERVER_IP
    - SSH access via root
    - 5GB volume mounted at `/mnt/data`
 
@@ -77,13 +77,13 @@ Before starting, ensure you have:
 First, ensure you can SSH into your server:
 
 ```bash
-ssh root@104.236.1.164
+ssh root@YOUR_SERVER_IP
 ```
 
 If you can't connect, add your SSH key:
 
 ```bash
-ssh-copy-id root@104.236.1.164
+ssh-copy-id root@YOUR_SERVER_IP
 ```
 
 ### Step 2: Verify Volume Mount
@@ -91,7 +91,7 @@ ssh-copy-id root@104.236.1.164
 Check that your 5GB volume is mounted at `/mnt/data`:
 
 ```bash
-ssh root@104.236.1.164 "df -h /mnt/data"
+ssh root@YOUR_SERVER_IP "df -h /mnt/data"
 ```
 
 If not mounted, follow Digital Ocean's guide to mount the volume.
@@ -135,13 +135,13 @@ This creates two files:
 Copy the public key to the deploy user on the server:
 
 ```bash
-ssh root@104.236.1.164 "cat >> /home/deploy/.ssh/authorized_keys" < ~/.ssh/deploy_key.pub
+ssh root@YOUR_SERVER_IP "cat >> /home/deploy/.ssh/authorized_keys" < ~/.ssh/deploy_key.pub
 ```
 
 Verify the deploy user can be accessed:
 
 ```bash
-ssh -i ~/.ssh/deploy_key deploy@104.236.1.164 "whoami"
+ssh -i ~/.ssh/deploy_key deploy@YOUR_SERVER_IP "whoami"
 ```
 
 Should output: `deploy`
@@ -159,7 +159,7 @@ Go to your GitHub repository:
 
 | Secret Name | Description | Example |
 |-------------|-------------|---------|
-| `PRODUCTION_HOST` | Server IP address | `104.236.1.164` |
+| `PRODUCTION_HOST` | Server IP address | `YOUR_SERVER_IP` |
 | `PRODUCTION_SSH_KEY` | Private SSH key for deploy user | Contents of `~/.ssh/deploy_key` |
 | `POSTGRES_DB` | PostgreSQL database name | `directus` |
 | `POSTGRES_USER` | PostgreSQL username | `directus` |
@@ -208,7 +208,7 @@ Go to [Cloudflare Dashboard](https://dash.cloudflare.com/) and select `bitcoindi
 3. Configure:
    - **Type**: A
    - **Name**: staging
-   - **IPv4 address**: 104.236.1.164
+   - **IPv4 address**: YOUR_SERVER_IP
    - **Proxy status**: DNS only (gray cloud, **not** orange)
    - **TTL**: Auto
 
@@ -222,7 +222,7 @@ Wait 1-5 minutes, then verify:
 dig staging.bitcoindistrict.org +short
 ```
 
-Should return: `104.236.1.164`
+Should return: `YOUR_SERVER_IP`
 
 **Important**: Keep proxy status as "DNS only" initially so Caddy can obtain Let's Encrypt certificates. You can enable Cloudflare proxy later if desired.
 
@@ -272,7 +272,7 @@ ansible-playbook -i inventory/production.yml playbooks/deploy.yml
 SSH into the server:
 
 ```bash
-ssh deploy@104.236.1.164
+ssh deploy@YOUR_SERVER_IP
 cd bd-directus-astro
 
 # Check container status
@@ -352,7 +352,7 @@ Only production uses `docker-compose.prod.yml`.
 ### View Logs
 
 ```bash
-ssh deploy@104.236.1.164
+ssh deploy@YOUR_SERVER_IP
 
 # Container logs
 cd ~/bd-directus-astro
@@ -370,7 +370,7 @@ sudo journalctl -u caddy -f
 ### Check Resource Usage
 
 ```bash
-ssh deploy@104.236.1.164
+ssh deploy@YOUR_SERVER_IP
 
 # Disk space
 df -h
@@ -390,7 +390,7 @@ du -sh /mnt/data/*
 Run the backup script:
 
 ```bash
-ssh deploy@104.236.1.164
+ssh deploy@YOUR_SERVER_IP
 cd ~/bd-directus-astro
 ./scripts/backup-database.sh
 ```
@@ -443,17 +443,17 @@ directus:
 
 2. **Check Caddy**:
    ```bash
-   ssh deploy@104.236.1.164 "sudo systemctl status caddy"
+   ssh deploy@YOUR_SERVER_IP "sudo systemctl status caddy"
    ```
 
 3. **Check Containers**:
    ```bash
-   ssh deploy@104.236.1.164 "cd ~/bd-directus-astro && docker compose -f docker-compose.prod.yml ps"
+   ssh deploy@YOUR_SERVER_IP "cd ~/bd-directus-astro && docker compose -f docker-compose.prod.yml ps"
    ```
 
 4. **Check Firewall**:
    ```bash
-   ssh deploy@104.236.1.164 "sudo ufw status"
+   ssh deploy@YOUR_SERVER_IP "sudo ufw status"
    ```
    Should show 80 and 443 allowed.
 
@@ -462,25 +462,25 @@ directus:
 1. **Verify DNS is not proxied**: Must be "DNS only" in Cloudflare
 2. **Check Caddy logs**:
    ```bash
-   ssh deploy@104.236.1.164 "sudo journalctl -u caddy -n 100"
+   ssh deploy@YOUR_SERVER_IP "sudo journalctl -u caddy -n 100"
    ```
 3. **Restart Caddy**:
    ```bash
-   ssh deploy@104.236.1.164 "sudo systemctl restart caddy"
+   ssh deploy@YOUR_SERVER_IP "sudo systemctl restart caddy"
    ```
 
 ### Container Won't Start
 
 1. **Check logs**:
    ```bash
-   ssh deploy@104.236.1.164
+   ssh deploy@YOUR_SERVER_IP
    cd ~/bd-directus-astro
    docker compose -f docker-compose.prod.yml logs [service-name]
    ```
 
 2. **Check .env file**:
    ```bash
-   ssh deploy@104.236.1.164 "cat ~/bd-directus-astro/.env"
+   ssh deploy@YOUR_SERVER_IP "cat ~/bd-directus-astro/.env"
    ```
 
 3. **Restart specific service**:
@@ -492,7 +492,7 @@ directus:
 
 1. **Reset admin password**:
    ```bash
-   ssh deploy@104.236.1.164
+   ssh deploy@YOUR_SERVER_IP
    cd ~/bd-directus-astro
    docker compose -f docker-compose.prod.yml exec directus \
      npx directus users update --email admin@bitcoindistrict.org --password newpassword
@@ -505,19 +505,19 @@ directus:
 
 1. **Check usage**:
    ```bash
-   ssh deploy@104.236.1.164 "df -h && du -sh /mnt/data/*"
+   ssh deploy@YOUR_SERVER_IP "df -h && du -sh /mnt/data/*"
    ```
 
 2. **Clean Docker**:
    ```bash
-   ssh deploy@104.236.1.164
+   ssh deploy@YOUR_SERVER_IP
    docker system prune -af
    docker volume prune -f
    ```
 
 3. **Clean old backups**:
    ```bash
-   ssh deploy@104.236.1.164 "rm -rf ~/backups/*"
+   ssh deploy@YOUR_SERVER_IP "rm -rf ~/backups/*"
    ```
 
 ### GitHub Actions Failing
@@ -531,7 +531,7 @@ directus:
 
 3. **Test SSH manually**:
    ```bash
-   ssh -i ~/.ssh/deploy_key deploy@104.236.1.164
+   ssh -i ~/.ssh/deploy_key deploy@YOUR_SERVER_IP
    ```
 
 ## Rollback Procedures
@@ -542,7 +542,7 @@ Manual deployments create automatic backups in `~/backups/`.
 
 1. SSH into server:
    ```bash
-   ssh deploy@104.236.1.164
+   ssh deploy@YOUR_SERVER_IP
    ```
 
 2. Find latest backup:

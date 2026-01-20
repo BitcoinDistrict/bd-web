@@ -1,12 +1,12 @@
 ---
 - name: Deploy Bitcoin District application
-  hosts: bitcoindistrict
+  hosts: bd-web
   become: yes
   become_user: "{{ app_user }}"
   gather_facts: yes
 
   vars:
-    git_repo: "https://github.com/YOUR_USERNAME/bd-directus-astro.git"
+    git_repo: "https://github.com/BitcoinDistrict/bd-web.git"
     git_branch: main
 
   tasks:

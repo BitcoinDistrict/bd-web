@@ -4,7 +4,7 @@ This is a condensed guide for deploying Bitcoin District to production. For deta
 
 ## Prerequisites
 
-- Ubuntu 24.04 LTS server (104.236.1.164)
+- Ubuntu 24.04 LTS server (YOUR_SERVER_IP)
 - 5GB volume mounted at `/mnt/data`
 - Ansible installed locally: `pip install ansible`
 - SSH access to server as root
@@ -17,7 +17,7 @@ This is a condensed guide for deploying Bitcoin District to production. For deta
 
 ```bash
 # Test SSH access
-ssh root@104.236.1.164
+ssh root@YOUR_SERVER_IP
 
 # Run Ansible setup from your local machine
 cd ansible
@@ -31,10 +31,10 @@ ansible-playbook -i inventory/production.yml playbooks/initial-setup.yml
 ssh-keygen -t ed25519 -f ~/.ssh/deploy_key -C "github-actions-deploy" -N ""
 
 # Add public key to server
-ssh root@104.236.1.164 "cat >> /home/deploy/.ssh/authorized_keys" < ~/.ssh/deploy_key.pub
+ssh root@YOUR_SERVER_IP "cat >> /home/deploy/.ssh/authorized_keys" < ~/.ssh/deploy_key.pub
 
 # Test deploy user access
-ssh -i ~/.ssh/deploy_key deploy@104.236.1.164 "whoami"
+ssh -i ~/.ssh/deploy_key deploy@YOUR_SERVER_IP "whoami"
 ```
 
 ### 3. Configure Cloudflare DNS
@@ -43,7 +43,7 @@ ssh -i ~/.ssh/deploy_key deploy@104.236.1.164 "whoami"
 2. Go to bitcoindistrict.org DNS settings
 3. Add A record:
    - Name: `staging`
-   - IPv4: `104.236.1.164`
+   - IPv4: `YOUR_SERVER_IP`
    - Proxy: **DNS only** (gray cloud)
 
 ### 4. Add GitHub Secrets
@@ -58,7 +58,7 @@ POSTGRES_PASSWORD=$(openssl rand -base64 32)
 ```
 
 **Required Secrets:**
-- `PRODUCTION_HOST` = `104.236.1.164`
+- `PRODUCTION_HOST` = `YOUR_SERVER_IP`
 - `PRODUCTION_SSH_KEY` = Contents of `~/.ssh/deploy_key` (private key)
 - `POSTGRES_DB` = `directus`
 - `POSTGRES_USER` = `directus`
@@ -84,7 +84,7 @@ Monitor at: `https://github.com/YOUR_USERNAME/bd-directus-astro/actions`
 
 ```bash
 # Check services
-ssh deploy@104.236.1.164 "cd ~/bd-directus-astro && docker compose -f docker-compose.prod.yml ps"
+ssh deploy@YOUR_SERVER_IP "cd ~/bd-directus-astro && docker compose -f docker-compose.prod.yml ps"
 
 # Test URLs (wait ~2 minutes for SSL)
 curl -I https://staging.bitcoindistrict.org
@@ -107,10 +107,10 @@ curl -I https://staging.bitcoindistrict.org/admin
 
 ```bash
 # View logs
-ssh deploy@104.236.1.164 "cd ~/bd-directus-astro && docker compose -f docker-compose.prod.yml logs -f"
+ssh deploy@YOUR_SERVER_IP "cd ~/bd-directus-astro && docker compose -f docker-compose.prod.yml logs -f"
 
 # Restart service
-ssh deploy@104.236.1.164 "cd ~/bd-directus-astro && docker compose -f docker-compose.prod.yml restart astro"
+ssh deploy@YOUR_SERVER_IP "cd ~/bd-directus-astro && docker compose -f docker-compose.prod.yml restart astro"
 
 # Manual deployment
 cd ansible
@@ -144,6 +144,6 @@ Full documentation: [README-DEPLOYMENT.md](README-DEPLOYMENT.md)
 
 ---
 
-**Server**: 104.236.1.164  
+**Server**: YOUR_SERVER_IP  
 **Domain**: staging.bitcoindistrict.org  
 **Admin**: https://staging.bitcoindistrict.org/admin
