@@ -52,7 +52,7 @@ jobs:
           PUBLIC_DIRECTUS_URL=https://admin.bitcoindistrict.org
           
           # CMS Enable/Disable
-          PUBLIC_CMS_ENABLED=true
+          PUBLIC_CMS_ENABLED=${{ secrets.PUBLIC_CMS_ENABLED || 'true' }}
           
           # Directus Tokens
           DIRECTUS_STATIC_TOKEN=${{ secrets.DIRECTUS_STATIC_TOKEN }}
@@ -114,8 +114,8 @@ jobs:
           echo "Pulling latest Docker images..."
           docker compose -f docker-compose.prod.yml pull
           
-          echo "Building and starting containers..."
-          docker compose -f docker-compose.prod.yml up -d --build --remove-orphans
+          echo "Building and starting containers (forcing recreate to pick up new env vars)..."
+          docker compose -f docker-compose.prod.yml up -d --build --force-recreate --remove-orphans
           
           echo "Waiting for services to be healthy..."
           sleep 10

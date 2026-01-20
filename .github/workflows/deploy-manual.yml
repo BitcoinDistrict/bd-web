@@ -72,7 +72,7 @@ jobs:
           PUBLIC_DIRECTUS_URL=https://admin.bitcoindistrict.org
           
           # CMS Enable/Disable
-          PUBLIC_CMS_ENABLED=true
+          PUBLIC_CMS_ENABLED=${{ secrets.PUBLIC_CMS_ENABLED || 'true' }}
           
           # Directus Tokens
           DIRECTUS_STATIC_TOKEN=${{ secrets.DIRECTUS_STATIC_TOKEN }}
@@ -181,7 +181,8 @@ jobs:
           set -e
           cd ${{ env.DEPLOY_PATH }}
           
-          echo "Restarting containers (no rebuild)..."
+          echo "Restarting containers (no rebuild, forcing recreate to pick up new env vars)..."
+          docker compose -f docker-compose.prod.yml up -d --force-recreate --remove-orphans
           docker compose -f docker-compose.prod.yml up -d --remove-orphans
           
           echo "Waiting for services to be healthy..."
