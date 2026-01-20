@@ -2,6 +2,18 @@
 FROM node:20-slim AS builder
 WORKDIR /app
 
+# Declare build arguments for PUBLIC_ variables that Astro needs at build time
+ARG PUBLIC_CMS_ENABLED
+ARG PUBLIC_DIRECTUS_URL
+ARG DIRECTUS_URL
+ARG DIRECTUS_STATIC_TOKEN
+
+# Set them as environment variables so they're available during build
+ENV PUBLIC_CMS_ENABLED=$PUBLIC_CMS_ENABLED
+ENV PUBLIC_DIRECTUS_URL=$PUBLIC_DIRECTUS_URL
+ENV DIRECTUS_URL=$DIRECTUS_URL
+ENV DIRECTUS_STATIC_TOKEN=$DIRECTUS_STATIC_TOKEN
+
 # Copy package files
 COPY package*.json ./
 

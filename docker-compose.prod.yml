@@ -95,6 +95,11 @@ services:
       context: ./site
       dockerfile: Dockerfile
       target: production
+      args:
+        PUBLIC_CMS_ENABLED: ${PUBLIC_CMS_ENABLED:-true}
+        PUBLIC_DIRECTUS_URL: ${PUBLIC_DIRECTUS_URL}
+        DIRECTUS_URL: http://directus:8055
+        DIRECTUS_STATIC_TOKEN: ${DIRECTUS_STATIC_TOKEN}
     ports:
       - "127.0.0.1:4321:4321"  # Expose only to localhost for Caddy
     environment:
