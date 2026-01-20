@@ -116,6 +116,8 @@ jobs:
             --exclude 'node_modules' \
             --exclude '.env' \
             --exclude 'directus/data' \
+            --exclude 'directus/extensions' \
+            --exclude 'directus/uploads' \
             --exclude '.cursor' \
             --exclude 'site/node_modules' \
             --exclude 'site/dist' \
