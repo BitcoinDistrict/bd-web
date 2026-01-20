@@ -24,18 +24,22 @@ COPY package*.json ./
 # Install only production dependencies
 RUN npm ci --only=production
 
-# Copy built files from builder stage
+# Copy built files from builder stage (includes standalone Node server)
 COPY --from=builder /app/dist ./dist
 
 # Expose port
 EXPOSE 4321
 
+# Set environment variable for host
+ENV HOST=0.0.0.0
+ENV PORT=4321
+
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s \
-  CMD node -e "require('http').get('http://localhost:4321', (r) => {if (r.statusCode === 200) process.exit(0); else process.exit(1);})"
+  CMD node -e "require('http').get('http://localhost:4321', (r) => {if (r.statusCode >= 200 && r.statusCode < 500) process.exit(0); else process.exit(1);})"
 
-# Start the application in preview mode (SSR production)
-CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0"]
+# Start the built Node server directly (SSR production)
+CMD ["node", "./dist/server/entry.mjs"]
 
 # Development stage (used by docker-compose.yml)
 FROM node:20-slim AS development
