@@ -44,7 +44,7 @@ ssh -i ~/.ssh/deploy_key deploy@YOUR_SERVER_IP "whoami"
 3. Add A record:
    - Name: `staging`
    - IPv4: `YOUR_SERVER_IP`
-   - Proxy: **DNS only** (gray cloud)
+   - Proxy: **Proxied** (orange cloud) - recommended for DDoS protection
 
 ### 4. Add GitHub Secrets
 

@@ -49,7 +49,7 @@ jobs:
           DIRECTUS_ADMIN_PASSWORD=${{ secrets.DIRECTUS_ADMIN_PASSWORD }}
           
           # Public URLs
-          PUBLIC_DIRECTUS_URL=https://staging.bitcoindistrict.org/admin
+          PUBLIC_DIRECTUS_URL=https://admin.staging.bitcoindistrict.org
           
           # CMS Enable/Disable
           PUBLIC_CMS_ENABLED=true
@@ -175,7 +175,7 @@ jobs:
           curl -f -k https://staging.bitcoindistrict.org/ || echo "Main site not responding yet"
           
           echo "Testing admin panel..."
-          curl -f -k https://staging.bitcoindistrict.org/admin || echo "Admin panel not responding yet"
+          curl -f -k https://admin.staging.bitcoindistrict.org || echo "Admin panel not responding yet"
 
       - name: Clean up SSH key
         if: always()
@@ -187,7 +187,7 @@ jobs:
         run: |
           echo "✅ Deployment completed successfully!"
           echo "🌐 Main site: https://staging.bitcoindistrict.org"
-          echo "⚙️  Admin panel: https://staging.bitcoindistrict.org/admin"
+          echo "⚙️  Admin panel: https://admin.staging.bitcoindistrict.org"
           echo "📝 Commit: ${{ github.sha }}"
           echo "👤 Deployed by: ${{ github.actor }}"
 

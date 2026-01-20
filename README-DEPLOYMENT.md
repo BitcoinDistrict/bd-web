@@ -30,7 +30,7 @@ The production infrastructure consists of:
 ### URL Structure
 
 - Main site: `https://staging.bitcoindistrict.org`
-- Admin panel: `https://staging.bitcoindistrict.org/admin`
+- Admin panel: `https://admin.staging.bitcoindistrict.org`
 - Assets: `https://staging.bitcoindistrict.org/assets/*`
 
 ### Server Layout
@@ -201,30 +201,50 @@ Double-check all secrets are added correctly. Missing secrets will cause deploym
 
 Go to [Cloudflare Dashboard](https://dash.cloudflare.com/) and select `bitcoindistrict.org`.
 
-### Step 2: Add A Record
+### Step 2: Add A Records
 
+Add two A records for the main site and admin subdomain:
+
+**Main Site:**
 1. Click **DNS** → **Records**
 2. Click **Add record**
 3. Configure:
    - **Type**: A
    - **Name**: staging
    - **IPv4 address**: YOUR_SERVER_IP
-   - **Proxy status**: DNS only (gray cloud, **not** orange)
+   - **Proxy status**: Proxied (orange cloud) ✅
    - **TTL**: Auto
-
 4. Click **Save**
 
-### Step 3: Verify DNS Propagation
+**Admin Subdomain:**
+1. Click **Add record** again
+2. Configure:
+   - **Type**: A
+   - **Name**: admin.staging
+   - **IPv4 address**: YOUR_SERVER_IP
+   - **Proxy status**: Proxied (orange cloud) ✅
+   - **TTL**: Auto
+3. Click **Save**
+
+### Step 3: Configure Cloudflare SSL/TLS
+
+1. Go to **SSL/TLS** → **Overview**
+2. Set encryption mode to **Full** or **Full (strict)**
+   - This ensures Cloudflare connects to Caddy over HTTPS
+   - Caddy will still obtain Let's Encrypt certificates automatically
+
+### Step 4: Verify DNS Propagation
 
 Wait 1-5 minutes, then verify:
 
 ```bash
 dig staging.bitcoindistrict.org +short
+dig admin.staging.bitcoindistrict.org +short
 ```
 
-Should return: `YOUR_SERVER_IP`
+Both should return Cloudflare IPs (not your server IP) when proxied, which is correct.
 
-**Important**: Keep proxy status as "DNS only" initially so Caddy can obtain Let's Encrypt certificates. You can enable Cloudflare proxy later if desired.
+**Note**: Cloudflare proxy provides DDoS protection, caching, and other benefits. Caddy will still obtain valid Let's Encrypt certificates automatically.
 
 ## First Deployment
 
@@ -291,7 +311,7 @@ sudo systemctl status caddy
    - Should show the Bitcoin District homepage
    - Check browser console for errors
 
-2. **Admin panel**: https://staging.bitcoindistrict.org/admin
+2. **Admin panel**: https://admin.staging.bitcoindistrict.org
    - Should show Directus login
    - Login with `DIRECTUS_ADMIN_EMAIL` and `DIRECTUS_ADMIN_PASSWORD`
 
@@ -304,7 +324,7 @@ sudo systemctl status caddy
 
 After first deployment, log into Directus to generate API tokens:
 
-1. Go to https://staging.bitcoindistrict.org/admin
+1. Go to https://admin.staging.bitcoindistrict.org
 2. Login with admin credentials
 3. Navigate to **Settings** → **Access Tokens**
 4. Create two tokens:
@@ -459,7 +479,7 @@ directus:
 
 ### SSL Certificate Issues
 
-1. **Verify DNS is not proxied**: Must be "DNS only" in Cloudflare
+1. **Verify Cloudflare SSL/TLS mode**: Should be "Full" or "Full (strict)" in Cloudflare dashboard
 2. **Check Caddy logs**:
    ```bash
    ssh deploy@YOUR_SERVER_IP "sudo journalctl -u caddy -n 100"
@@ -468,6 +488,7 @@ directus:
    ```bash
    ssh deploy@YOUR_SERVER_IP "sudo systemctl restart caddy"
    ```
+4. **If using Cloudflare proxy**: Ensure SSL/TLS encryption mode is set to "Full" (not "Flexible")
 
 ### Container Won't Start
 

@@ -6,6 +6,41 @@
     email admin@bitcoindistrict.org
 }
 
+# Directus admin UI and API - subdomain approach (recommended by Directus)
+admin.staging.bitcoindistrict.org {
+    # Automatic HTTPS via Let's Encrypt
+    
+    # Enable gzip compression
+    encode gzip
+
+    # Access logging
+    log {
+        output file /var/log/caddy/access.log {
+            roll_size 100mb
+            roll_keep 5
+            roll_keep_for 720h
+        }
+        format json
+        level INFO
+    }
+
+    # Proxy all requests to Directus (no path stripping needed)
+    reverse_proxy http://localhost:8055 {
+        # Forward real client information
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Host {host}
+        
+        # Timeouts for longer operations
+        transport http {
+            dial_timeout 10s
+            response_header_timeout 60s
+        }
+    }
+}
+
 staging.bitcoindistrict.org {
     # Automatic HTTPS via Let's Encrypt (email configured globally above)
     
@@ -23,28 +58,7 @@ staging.bitcoindistrict.org {
         level INFO
     }
 
-    # Directus admin UI and API
-    # All requests to /admin/* route to Directus
-    # Using handle_path strips /admin prefix before proxying
-    handle_path /admin* {
-        reverse_proxy http://localhost:8055 {
-            # Forward real client information
-            header_up Host {host}
-            header_up X-Real-IP {remote_host}
-            header_up X-Forwarded-For {remote_host}
-            header_up X-Forwarded-Proto {scheme}
-            header_up X-Forwarded-Host {host}
-            header_up X-Forwarded-Prefix /admin
-            
-            # Timeouts for longer operations
-            transport http {
-                dial_timeout 10s
-                response_header_timeout 60s
-            }
-        }
-    }
-
-    # Directus assets (images, files, etc.)
+    # Directus assets (images, files, etc.) - keep on main domain for frontend compatibility
     handle_path /assets* {
         # Cache static assets
         header Cache-Control "public, max-age=31536000, immutable"

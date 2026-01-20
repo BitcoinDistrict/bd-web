@@ -193,7 +193,8 @@ ssh root@YOUR_SERVER_IP "cat >> /home/deploy/.ssh/authorized_keys" < ~/.ssh/depl
 
 In Cloudflare:
 - Add A record: `staging` → `YOUR_SERVER_IP`
-- Proxy status: DNS only (gray cloud)
+- Proxy status: Proxied (orange cloud) - recommended for DDoS protection
+- Cloudflare SSL/TLS mode: Full or Full (strict)
 
 ### 4. Add GitHub Secrets (~10 minutes)
 
