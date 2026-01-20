@@ -5,6 +5,36 @@
   gather_facts: yes
 
   tasks:
+    - name: Fix Directus uploads directory ownership and permissions
+      file:
+        path: "{{ data_mount }}/directus-uploads"
+        state: directory
+        owner: '1000'
+        group: '1000'
+        mode: '0755'
+        recurse: yes
+      tags: fix-permissions
+    
+    - name: Fix PostgreSQL data directory ownership and permissions
+      file:
+        path: "{{ data_mount }}/postgres"
+        state: directory
+        owner: '70'
+        group: '70'
+        mode: '0700'
+        recurse: yes
+      tags: fix-permissions
+
+    - name: Verify data directory permissions
+      command: ls -la {{ data_mount }}
+      register: data_perms
+      tags: fix-permissions
+
+    - name: Display data directory permissions
+      debug:
+        var: data_perms.stdout_lines
+      tags: fix-permissions
+
     - name: Update apt cache
       apt:
         update_cache: yes
