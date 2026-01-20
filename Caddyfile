@@ -1,12 +1,14 @@
 # Bitcoin District Production Site
 # Caddy v2 configuration with automatic HTTPS
 
-staging.bitcoindistrict.org {
-    # Automatic HTTPS via Let's Encrypt
-    tls {
-        email admin@bitcoindistrict.org
-    }
+{
+    # Global options
+    email admin@bitcoindistrict.org
+}
 
+staging.bitcoindistrict.org {
+    # Automatic HTTPS via Let's Encrypt (email configured globally above)
+    
     # Enable gzip compression
     encode gzip
 
