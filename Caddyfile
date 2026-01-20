@@ -44,14 +44,14 @@ staging.bitcoindistrict.org {
 
     # Directus assets (images, files, etc.)
     handle_path /assets* {
+        # Cache static assets
+        header Cache-Control "public, max-age=31536000, immutable"
+        
         reverse_proxy http://localhost:8055 {
             header_up Host {host}
             header_up X-Real-IP {remote_host}
             header_up X-Forwarded-For {remote_host}
             header_up X-Forwarded-Proto {scheme}
-            
-            # Cache static assets
-            header Cache-Control "public, max-age=31536000, immutable"
         }
     }
 
