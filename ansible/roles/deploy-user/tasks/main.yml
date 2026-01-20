@@ -42,11 +42,11 @@
     mode: '0755'
   tags: deploy-user
 
-- name: Configure passwordless sudo for deploy user for docker commands
+- name: Configure passwordless sudo for deploy user for docker and caddy commands
   copy:
     dest: /etc/sudoers.d/deploy
     content: |
-      {{ app_user }} ALL=(ALL) NOPASSWD: /usr/bin/docker, /usr/bin/docker-compose, /usr/bin/systemctl restart caddy, /usr/bin/systemctl reload caddy, /usr/bin/systemctl status caddy, /usr/bin/cp
+      {{ app_user }} ALL=(ALL) NOPASSWD: /usr/bin/docker, /usr/bin/docker-compose, /usr/bin/systemctl restart caddy, /usr/bin/systemctl reload caddy, /usr/bin/systemctl status caddy, /usr/bin/cp, /usr/bin/mkdir, /usr/bin/chown, /usr/bin/chmod, /usr/bin/caddy, /usr/bin/journalctl
     mode: '0440'
     validate: 'visudo -cf %s'
   tags: deploy-user
