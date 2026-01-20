@@ -26,7 +26,17 @@ cd "$PROJECT_ROOT"
 
 # Load environment variables
 if [ -f .env ]; then
-    export $(cat .env | grep -v '^#' | xargs)
+    # Export variables from .env file, properly handling comments and special characters
+    # Filters out comment lines (starting with #), empty lines, and only processes KEY=VALUE pairs
+    set -a
+    # Use a temporary file to avoid process substitution issues
+    TEMP_ENV=$(mktemp)
+    grep -v '^[[:space:]]*#' .env | grep -v '^[[:space:]]*$' | grep '=' > "$TEMP_ENV" 2>/dev/null
+    if [ -s "$TEMP_ENV" ]; then
+        source "$TEMP_ENV"
+    fi
+    rm -f "$TEMP_ENV"
+    set +a
 fi
 
 # Check if Directus is running
