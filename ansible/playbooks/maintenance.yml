@@ -1,0 +1,56 @@
+---
+- name: Maintenance tasks for Bitcoin District server
+  hosts: bitcoindistrict
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Upgrade all packages
+      apt:
+        upgrade: dist
+        autoremove: yes
+        autoclean: yes
+
+    - name: Clean up old Docker images
+      command: docker image prune -af --filter "until=720h"
+      become: yes
+      become_user: "{{ app_user }}"
+
+    - name: Clean up unused Docker volumes
+      command: docker volume prune -f
+      become: yes
+      become_user: "{{ app_user }}"
+
+    - name: Check disk usage
+      command: df -h
+      register: disk_usage
+
+    - name: Display disk usage
+      debug:
+        var: disk_usage.stdout_lines
+
+    - name: Check Docker container status
+      command: docker ps -a
+      become: yes
+      become_user: "{{ app_user }}"
+      register: container_status
+
+    - name: Display container status
+      debug:
+        var: container_status.stdout_lines
+
+    - name: Check system memory
+      command: free -h
+      register: memory_status
+
+    - name: Display memory status
+      debug:
+        var: memory_status.stdout_lines
+
+    - name: Rotate logs manually
+      command: logrotate -f /etc/logrotate.conf
