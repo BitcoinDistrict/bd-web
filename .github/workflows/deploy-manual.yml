@@ -126,11 +126,29 @@ jobs:
           scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
             .env ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }}:${{ env.DEPLOY_PATH }}/.env
 
-      - name: Copy Caddyfile to system location
+      - name: Validate and deploy Caddyfile
         run: |
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
-            ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} \
-            "sudo cp ${{ env.DEPLOY_PATH }}/Caddyfile /etc/caddy/Caddyfile"
+            ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'ENDSSH'
+          set -e
+          cd ${{ env.DEPLOY_PATH }}
+          
+          echo "Ensuring Caddy log directory exists..."
+          sudo mkdir -p /var/log/caddy
+          sudo chown caddy:caddy /var/log/caddy
+          sudo chmod 755 /var/log/caddy
+          
+          echo "Validating Caddyfile syntax..."
+          sudo caddy validate --config ./Caddyfile || {
+            echo "❌ Caddyfile validation failed!"
+            exit 1
+          }
+          
+          echo "Copying validated Caddyfile to system location..."
+          sudo cp ./Caddyfile /etc/caddy/Caddyfile
+          sudo chown root:root /etc/caddy/Caddyfile
+          sudo chmod 644 /etc/caddy/Caddyfile
+          ENDSSH
 
       - name: Deploy with Docker Compose (Rebuild)
         if: github.event.inputs.rebuild == 'true'
@@ -174,8 +192,25 @@ jobs:
       - name: Reload Caddy
         run: |
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
-            ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} \
-            "sudo systemctl reload caddy || sudo systemctl restart caddy"
+            ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'ENDSSH'
+          set -e
+          
+          echo "Reloading Caddy service..."
+          if sudo systemctl reload caddy; then
+            echo "✅ Caddy reloaded successfully"
+          elif sudo systemctl restart caddy; then
+            echo "✅ Caddy restarted successfully"
+          else
+            echo "❌ Caddy reload/restart failed"
+            echo ""
+            echo "=== Caddy Status ==="
+            sudo systemctl status caddy --no-pager || true
+            echo ""
+            echo "=== Caddy Logs ==="
+            sudo journalctl -xeu caddy.service --no-pager -n 50 || true
+            exit 1
+          fi
+          ENDSSH
 
       - name: Verify deployment
         run: |
