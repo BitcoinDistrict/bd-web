@@ -235,16 +235,54 @@ if [ "$DB_ONLY" = false ]; then
         # Production: restore to /mnt/data/directus-uploads
         UPLOADS_DIR="/mnt/data/directus-uploads"
         echo -e "${YELLOW}  Restoring to production directory: ${UPLOADS_DIR}${NC}"
-        
-        sudo mkdir -p "$UPLOADS_DIR"
-        sudo chown -R 1000:1000 "$UPLOADS_DIR"
-        
-        # Clear existing uploads
+
+        # Check if directory exists and create if needed
+        if [ ! -d "$UPLOADS_DIR" ]; then
+            sudo mkdir -p "$UPLOADS_DIR"
+            if [ $? -ne 0 ]; then
+                echo -e "${RED}✗ Failed to create uploads directory${NC}"
+                exit 1
+            fi
+        fi
+
+        # Set correct ownership (Directus runs as UID 999)
+        sudo chown -R 999:999 "$UPLOADS_DIR"
+        if [ $? -ne 0 ]; then
+            echo -e "${RED}✗ Failed to set directory ownership${NC}"
+            exit 1
+        fi
+
+        # Clear existing uploads using allowed commands
         sudo rm -rf "${UPLOADS_DIR}"/*
-        
-        # Extract backup
-        sudo tar xzf "$UPLOADS_BACKUP" -C "$UPLOADS_DIR"
-        sudo chown -R 1000:1000 "$UPLOADS_DIR"
+        if [ $? -ne 0 ]; then
+            echo -e "${YELLOW}⚠ Failed to clear existing uploads (may not exist yet)${NC}"
+        fi
+
+        # Extract backup using tar (not in sudoers, so use cp + tar as deploy user)
+        # First copy the backup to a temp location the deploy user can access
+        TEMP_BACKUP="/tmp/uploads_backup_$$.tar.gz"
+        cp "$UPLOADS_BACKUP" "$TEMP_BACKUP"
+        if [ $? -ne 0 ]; then
+            echo -e "${RED}✗ Failed to copy uploads backup to temp location${NC}"
+            exit 1
+        fi
+
+        # Extract as deploy user (no sudo needed)
+        tar xzf "$TEMP_BACKUP" -C "$UPLOADS_DIR"
+        if [ $? -ne 0 ]; then
+            echo -e "${RED}✗ Failed to extract uploads backup${NC}"
+            rm -f "$TEMP_BACKUP"
+            exit 1
+        fi
+
+        # Clean up temp file
+        rm -f "$TEMP_BACKUP"
+
+        # Set final ownership
+        sudo chown -R 999:999 "$UPLOADS_DIR"
+        if [ $? -ne 0 ]; then
+            echo -e "${YELLOW}⚠ Failed to set final ownership, but extraction completed${NC}"
+        fi
     else
         # Local: restore to Docker volume
         VOLUME_NAME=$(docker volume ls --format '{{.Name}}' | grep directus_uploads | head -1)
