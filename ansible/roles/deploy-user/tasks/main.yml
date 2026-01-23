@@ -117,6 +117,7 @@
   community.general.npm:
     path: "{{ app_dir }}"
     state: present
+    executable: "{{ npm_path.stdout }}"
   become: yes
   become_user: "{{ app_user }}"
   tags: deploy-user
@@ -125,6 +126,8 @@
     - package_json.stat.exists | default(false)
     - npm_version.rc == 0
     - npm_path.rc == 0
+    - npm_path.stdout is defined
+    - npm_path.stdout | length > 0
 
 - name: Create cron job for RSS event import
   cron:
