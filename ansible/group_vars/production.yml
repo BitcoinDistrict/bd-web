@@ -30,6 +30,13 @@ firewall_allowed_ports:
 docker_users:
   - "{{ app_user }}"
 
+# SSH Key Configuration
+# Public key for CI/CD deploy user (GitHub Actions, etc.)
+# This should be the PUBLIC key corresponding to PRODUCTION_SSH_KEY_DEPLOY secret
+# Generate with: ssh-keygen -t ed25519 -C "github-actions-deploy"
+# Then add the public key here and the private key to GitHub Secrets
+deploy_ssh_public_key: "{{ lookup('env', 'DEPLOY_SSH_PUBLIC_KEY') }}"
+
 # RSS Event Import Cron Configuration
 # Set to false to disable the cron job
 rss_import_enabled: true

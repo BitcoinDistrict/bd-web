@@ -24,14 +24,14 @@
     mode: '0700'
   tags: deploy-user
 
-- name: Create authorized_keys file for deploy user
-  file:
-    path: "/home/{{ app_user }}/.ssh/authorized_keys"
-    state: touch
-    owner: "{{ app_user }}"
-    group: "{{ app_group }}"
-    mode: '0600'
+- name: Add CI/CD SSH public key to deploy user
+  authorized_key:
+    user: "{{ app_user }}"
+    key: "{{ deploy_ssh_public_key }}"
+    state: present
+    comment: "CI/CD Deploy Key (GitHub Actions)"
   tags: deploy-user
+  when: deploy_ssh_public_key is defined and deploy_ssh_public_key | length > 0
 
 - name: Create application directory
   file:

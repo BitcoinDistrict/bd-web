@@ -112,20 +112,20 @@ jobs:
             fi
           fi
 
-      - name: Configure SSH
+      - name: Configure SSH for Infrastructure (Root Access)
         if: steps.detect_changes.outputs.changed == 'true'
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.PRODUCTION_SSH_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
+          echo "${{ secrets.PRODUCTION_SSH_KEY_ROOT }}" > ~/.ssh/root_key
+          chmod 600 ~/.ssh/root_key
           ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
           
-          # SSH config for Ansible
+          # SSH config for Ansible - use root for infrastructure changes
           cat >> ~/.ssh/config << EOF
           Host ${{ secrets.PRODUCTION_HOST }}
             HostName ${{ secrets.PRODUCTION_HOST }}
-            User deploy
-            IdentityFile ~/.ssh/deploy_key
+            User root
+            IdentityFile ~/.ssh/root_key
             StrictHostKeyChecking no
           EOF
           chmod 600 ~/.ssh/config
@@ -161,6 +161,7 @@ jobs:
         env:
           BD_WEB_HOST: ${{ secrets.PRODUCTION_HOST }}
           ANSIBLE_HOST_KEY_CHECKING: False
+          DEPLOY_SSH_PUBLIC_KEY: ${{ secrets.PRODUCTION_SSH_PUBLIC_KEY_DEPLOY }}
         run: |
           cd ansible
           echo "🔍 Running Ansible in check mode (dry-run)..."
@@ -168,7 +169,6 @@ jobs:
           ROLES="${{ steps.detect_changes.outputs.roles }}"
           if [ "$ROLES" = "all" ]; then
             ansible-playbook -i inventory/production.yml playbooks/initial-setup.yml \
-              -e "ansible_user=deploy" \
               --become \
               --check \
               --diff \
@@ -176,7 +176,6 @@ jobs:
           else
             ansible-playbook -i inventory/production.yml playbooks/initial-setup.yml \
               --tags "$ROLES" \
-              -e "ansible_user=deploy" \
               --become \
               --check \
               --diff \
@@ -189,6 +188,7 @@ jobs:
         env:
           BD_WEB_HOST: ${{ secrets.PRODUCTION_HOST }}
           ANSIBLE_HOST_KEY_CHECKING: False
+          DEPLOY_SSH_PUBLIC_KEY: ${{ secrets.PRODUCTION_SSH_PUBLIC_KEY_DEPLOY }}
         run: |
           cd ansible
           echo "🚀 Applying Ansible changes..."
@@ -196,13 +196,11 @@ jobs:
           ROLES="${{ steps.detect_changes.outputs.roles }}"
           if [ "$ROLES" = "all" ]; then
             ansible-playbook -i inventory/production.yml playbooks/initial-setup.yml \
-              -e "ansible_user=deploy" \
               --become \
               -v
           else
             ansible-playbook -i inventory/production.yml playbooks/initial-setup.yml \
               --tags "$ROLES" \
-              -e "ansible_user=deploy" \
               --become \
               -v
           fi
@@ -212,8 +210,8 @@ jobs:
         if: steps.detect_changes.outputs.changed == 'true' && contains(steps.detect_changes.outputs.roles, 'common')
         run: |
           echo "🔍 Verifying Node.js and npm installation..."
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
-            ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'ENDSSH'
+          ssh -i ~/.ssh/root_key -o StrictHostKeyChecking=no \
+            root@${{ env.DEPLOY_HOST }} << 'ENDSSH'
           set -e
           
           echo "Checking Node.js version..."
@@ -241,10 +239,10 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-      - name: Clean up SSH key
+      - name: Clean up SSH keys
         if: always()
         run: |
-          rm -f ~/.ssh/deploy_key ~/.ssh/config
+          rm -f ~/.ssh/root_key ~/.ssh/config
 
   # Application deployment job
   deploy:
@@ -263,12 +261,22 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Configure SSH
+      - name: Configure SSH for Deployment (Deploy User)
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.PRODUCTION_SSH_KEY }}" > ~/.ssh/deploy_key
+          echo "${{ secrets.PRODUCTION_SSH_KEY_DEPLOY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
+          
+          # SSH config for deployment operations
+          cat >> ~/.ssh/config << EOF
+          Host ${{ secrets.PRODUCTION_HOST }}
+            HostName ${{ secrets.PRODUCTION_HOST }}
+            User deploy
+            IdentityFile ~/.ssh/deploy_key
+            StrictHostKeyChecking no
+          EOF
+          chmod 600 ~/.ssh/config
 
       - name: Create production .env file
         run: |
@@ -399,7 +407,7 @@ jobs:
             fi
           done
 
-      - name: Clean up SSH key
+      - name: Clean up SSH keys
         if: always()
         run: |
           rm -f ~/.ssh/deploy_key ~/.ssh/config
