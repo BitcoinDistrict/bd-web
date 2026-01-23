@@ -141,6 +141,7 @@
   when: 
     - rss_import_enabled | default(true)
     - npm_path is defined
+    - npm_path.rc is defined
     - npm_path.rc == 0
 
 - name: Create logs directory for cron job output
