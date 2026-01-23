@@ -113,6 +113,12 @@ services:
       PUBLIC_DIRECTUS_URL: https://admin.bitcoindistrict.org
       PUBLIC_CMS_ENABLED: ${PUBLIC_CMS_ENABLED:-true}
       DIRECTUS_STATIC_TOKEN: ${DIRECTUS_STATIC_TOKEN:-}
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:4321/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     depends_on:
       directus:
         condition: service_started
@@ -132,6 +138,39 @@ services:
         reservations:
           cpus: '0.5'
           memory: 512M
+
+  caddy:
+    image: caddy:2.8-alpine
+    container_name: bd-web-caddy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"  # HTTP/3
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - /mnt/data/caddy-data:/data
+      - /mnt/data/caddy-config:/config
+    networks:
+      - bd-network
+    depends_on:
+      astro:
+        condition: service_healthy
+      directus:
+        condition: service_started
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
 
 networks:
   bd-network:

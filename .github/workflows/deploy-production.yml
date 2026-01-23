@@ -316,31 +316,6 @@ jobs:
           scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
             .env ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }}:${{ env.DEPLOY_PATH }}/.env
 
-
-      - name: Validate and deploy Caddyfile
-        run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
-            ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'ENDSSH'
-          set -e
-          cd ${{ env.DEPLOY_PATH }}
-          
-          echo "Ensuring Caddy log directory exists..."
-          sudo mkdir -p /var/log/caddy
-          sudo chown caddy:caddy /var/log/caddy
-          sudo chmod 755 /var/log/caddy
-          
-          echo "Validating Caddyfile syntax..."
-          sudo caddy validate --config ./Caddyfile || {
-            echo "❌ Caddyfile validation failed!"
-            exit 1
-          }
-          
-          echo "Copying validated Caddyfile to system location..."
-          sudo cp ./Caddyfile /etc/caddy/Caddyfile
-          sudo chown root:root /etc/caddy/Caddyfile
-          sudo chmod 644 /etc/caddy/Caddyfile
-          ENDSSH
-
       - name: Deploy with Docker Compose
         run: |
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
@@ -348,40 +323,23 @@ jobs:
           set -e
           cd ${{ env.DEPLOY_PATH }}
           
+          echo "Creating Caddy data directories..."
+          mkdir -p /mnt/data/caddy-data /mnt/data/caddy-config
+          
           echo "Pulling latest Docker images..."
           docker compose -f docker-compose.prod.yml pull
           
-          echo "Building and starting containers (forcing recreate to pick up new env vars)..."
+          echo "Building and starting containers (including Caddy)..."
           docker compose -f docker-compose.prod.yml up -d --build --force-recreate --remove-orphans
           
           echo "Waiting for services to be healthy..."
-          sleep 10
+          sleep 15
           
           echo "Checking container status..."
           docker compose -f docker-compose.prod.yml ps
-          ENDSSH
-
-      - name: Reload Caddy
-        run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
-            ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'ENDSSH'
-          set -e
           
-          echo "Reloading Caddy service..."
-          if sudo systemctl reload caddy; then
-            echo "✅ Caddy reloaded successfully"
-          elif sudo systemctl restart caddy; then
-            echo "✅ Caddy restarted successfully"
-          else
-            echo "❌ Caddy reload/restart failed"
-            echo ""
-            echo "=== Caddy Status ==="
-            sudo systemctl status caddy --no-pager || true
-            echo ""
-            echo "=== Caddy Logs ==="
-            sudo journalctl -xeu caddy.service --no-pager -n 50 || true
-            exit 1
-          fi
+          echo "Checking Caddy logs for certificate provisioning..."
+          docker compose -f docker-compose.prod.yml logs caddy --tail=50
           ENDSSH
 
       - name: Verify deployment
@@ -395,24 +353,51 @@ jobs:
           docker compose -f docker-compose.prod.yml ps
           
           echo ""
-          echo "=== Caddy Status ==="
-          sudo systemctl status caddy --no-pager || true
+          echo "=== Caddy Container Logs ==="
+          docker compose -f docker-compose.prod.yml logs caddy --tail=30
           
           echo ""
-          echo "=== Recent Logs ==="
-          docker compose -f docker-compose.prod.yml logs --tail=20
+          echo "=== Application Logs ==="
+          docker compose -f docker-compose.prod.yml logs astro directus --tail=20
           ENDSSH
 
       - name: Health check
         run: |
-          echo "Waiting for services to be ready..."
-          sleep 15
+          echo "Waiting for Caddy to obtain certificates and start serving..."
+          sleep 30
           
-          echo "Testing main site..."
-          curl -f -k https://staging.bitcoindistrict.org/ || echo "Main site not responding yet"
+          MAX_RETRIES=5
+          RETRY_DELAY=10
           
-          echo "Testing admin panel..."
-          curl -f -k https://admin.bitcoindistrict.org || echo "Admin panel not responding yet"
+          for i in $(seq 1 $MAX_RETRIES); do
+            echo "Attempt $i/$MAX_RETRIES: Testing main site..."
+            if curl -f -s -o /dev/null -w "%{http_code}" https://staging.bitcoindistrict.org/ | grep -q "200"; then
+              echo "✅ Main site is responding"
+              break
+            else
+              if [ $i -eq $MAX_RETRIES ]; then
+                echo "❌ Main site failed after $MAX_RETRIES attempts"
+                exit 1
+              fi
+              echo "⚠️  Main site not ready, waiting ${RETRY_DELAY}s..."
+              sleep $RETRY_DELAY
+            fi
+          done
+          
+          for i in $(seq 1 $MAX_RETRIES); do
+            echo "Attempt $i/$MAX_RETRIES: Testing admin panel..."
+            if curl -f -s -o /dev/null -w "%{http_code}" https://admin.bitcoindistrict.org | grep -q "200"; then
+              echo "✅ Admin panel is responding"
+              break
+            else
+              if [ $i -eq $MAX_RETRIES ]; then
+                echo "❌ Admin panel failed after $MAX_RETRIES attempts"
+                exit 1
+              fi
+              echo "⚠️  Admin panel not ready, waiting ${RETRY_DELAY}s..."
+              sleep $RETRY_DELAY
+            fi
+          done
 
       - name: Clean up SSH key
         if: always()

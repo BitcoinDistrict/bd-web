@@ -4,6 +4,7 @@
 {
     # Global options
     email admin@bitcoindistrict.org
+    # Caddy in Docker automatically uses /data for certificate storage
 }
 
 # Directus admin UI and API - subdomain approach (recommended by Directus)
@@ -15,7 +16,7 @@ admin.bitcoindistrict.org {
 
     # Access logging
     log {
-        output file /var/log/caddy/access.log {
+        output file /data/logs/access.log {
             roll_size 100mb
             roll_keep 5
             roll_keep_for 720h
@@ -24,8 +25,8 @@ admin.bitcoindistrict.org {
         level INFO
     }
 
-    # Proxy all requests to Directus (no path stripping needed)
-    reverse_proxy http://localhost:8055 {
+    # Proxy to Directus container (use container name, not localhost)
+    reverse_proxy http://directus:8055 {
         # Forward real client information
         header_up Host {host}
         header_up X-Real-IP {remote_host}
@@ -49,7 +50,7 @@ staging.bitcoindistrict.org {
 
     # Access logging with rotation
     log {
-        output file /var/log/caddy/access.log {
+        output file /data/logs/access.log {
             roll_size 100mb
             roll_keep 5
             roll_keep_for 720h
@@ -58,12 +59,12 @@ staging.bitcoindistrict.org {
         level INFO
     }
 
-    # Directus assets (images, files, etc.) - keep on main domain for frontend compatibility
+    # Directus assets - proxy to directus container
     handle_path /assets* {
         # Cache static assets
         header Cache-Control "public, max-age=31536000, immutable"
         
-        reverse_proxy http://localhost:8055 {
+        reverse_proxy http://directus:8055 {
             header_up Host {host}
             header_up X-Real-IP {remote_host}
             header_up X-Forwarded-For {remote_host}
@@ -71,9 +72,9 @@ staging.bitcoindistrict.org {
         }
     }
 
-    # Main Astro site - all other paths
+    # Main Astro site - proxy to astro container
     handle {
-        reverse_proxy http://localhost:4321 {
+        reverse_proxy http://astro:4321 {
             # Forward real client information
             header_up Host {host}
             header_up X-Real-IP {remote_host}

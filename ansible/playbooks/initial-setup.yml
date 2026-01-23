@@ -22,9 +22,6 @@
     - role: deploy-user
       tags: deploy-user
 
-    - role: caddy
-      tags: caddy
-
   post_tasks:
     - name: Check if reboot is required
       stat:
@@ -42,13 +39,6 @@
         state: started
       check_mode: yes
       register: docker_status
-
-    - name: Verify Caddy is enabled
-      systemd:
-        name: caddy
-        enabled: yes
-      check_mode: yes
-      register: caddy_status
 
     - name: Display setup completion message
       debug:

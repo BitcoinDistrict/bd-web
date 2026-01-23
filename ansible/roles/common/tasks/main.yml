@@ -159,6 +159,14 @@
     - { name: 'fs.file-max', value: '65535' }
   tags: common
 
+- name: Ensure Docker can bind to privileged ports (80/443)
+  sysctl:
+    name: net.ipv4.ip_unprivileged_port_start
+    value: '0'
+    state: present
+    reload: yes
+  tags: common
+
 - name: Configure automatic security updates
   copy:
     dest: /etc/apt/apt.conf.d/50unattended-upgrades

@@ -30,11 +30,6 @@ firewall_allowed_ports:
 docker_users:
   - "{{ app_user }}"
 
-# Caddy configuration
-caddy_log_dir: /var/log/caddy
-caddy_config_dir: /etc/caddy
-caddy_data_dir: "{{ data_mount }}/caddy-data"
-
 # RSS Event Import Cron Configuration
 # Set to false to disable the cron job
 rss_import_enabled: true
