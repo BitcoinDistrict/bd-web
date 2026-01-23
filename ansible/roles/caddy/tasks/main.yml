@@ -92,7 +92,8 @@
       LimitNOFILE=1048576
       LimitNPROC=512
       PrivateTmp=true
-      ProtectSystem=full
+      ProtectSystem=strict
+      ReadWritePaths=/var/log/caddy /mnt/data/caddy-data
       AmbientCapabilities=CAP_NET_BIND_SERVICE
 
       [Install]
@@ -117,6 +118,15 @@
               systemctl reload caddy > /dev/null 2>&1 || true
           endscript
       }
+  tags: caddy
+
+- name: Ensure log file exists with correct permissions
+  file:
+    path: "{{ caddy_log_dir }}/access.log"
+    state: touch
+    owner: caddy
+    group: caddy
+    mode: '0644'
   tags: caddy
 
 - name: Enable Caddy service
