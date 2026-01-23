@@ -1,0 +1,170 @@
+name: Update Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      roles:
+        description: 'Roles to run (comma-separated, or "all" for all roles)'
+        required: false
+        default: 'all'
+        type: string
+      skip_check_mode:
+        description: 'Skip check mode (dry-run)'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  DEPLOY_USER: deploy
+  DEPLOY_HOST: ${{ secrets.PRODUCTION_HOST }}
+  DEPLOY_PATH: /home/deploy/bd-web
+
+jobs:
+  infrastructure:
+    name: Update Infrastructure
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PRODUCTION_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
+          
+          # SSH config for Ansible
+          cat >> ~/.ssh/config << EOF
+          Host ${{ secrets.PRODUCTION_HOST }}
+            HostName ${{ secrets.PRODUCTION_HOST }}
+            User deploy
+            IdentityFile ~/.ssh/deploy_key
+            StrictHostKeyChecking no
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Cache Ansible installation
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/lib/python3.*/site-packages/ansible*
+          key: ansible-${{ runner.os }}-v1
+          restore-keys: |
+            ansible-${{ runner.os }}-
+
+      - name: Install Ansible
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install ansible ansible-lint
+
+      - name: Validate Ansible syntax
+        run: |
+          cd ansible
+          echo "🔍 Validating Ansible syntax..."
+          ansible-playbook --syntax-check -i inventory/production.yml playbooks/initial-setup.yml || {
+            echo "❌ Ansible syntax validation failed!"
+            exit 1
+          }
+          echo "✅ Ansible syntax is valid"
+
+      - name: Run Ansible in check mode (dry-run)
+        if: inputs.skip_check_mode == false
+        env:
+          BD_WEB_HOST: ${{ secrets.PRODUCTION_HOST }}
+          ANSIBLE_HOST_KEY_CHECKING: False
+        run: |
+          cd ansible
+          echo "🔍 Running Ansible in check mode (dry-run)..."
+          
+          ROLES="${{ inputs.roles }}"
+          if [ "$ROLES" = "all" ] || [ -z "$ROLES" ]; then
+            ansible-playbook -i inventory/production.yml playbooks/initial-setup.yml \
+              -e "ansible_user=deploy" \
+              --become \
+              --check \
+              --diff \
+              -v
+          else
+            ansible-playbook -i inventory/production.yml playbooks/initial-setup.yml \
+              --tags "$ROLES" \
+              -e "ansible_user=deploy" \
+              --become \
+              --check \
+              --diff \
+              -v
+          fi
+          echo "✅ Check mode completed - no errors detected"
+
+      - name: Apply Ansible changes
+        env:
+          BD_WEB_HOST: ${{ secrets.PRODUCTION_HOST }}
+          ANSIBLE_HOST_KEY_CHECKING: False
+        run: |
+          cd ansible
+          echo "🚀 Applying Ansible changes..."
+          
+          ROLES="${{ inputs.roles }}"
+          if [ "$ROLES" = "all" ] || [ -z "$ROLES" ]; then
+            echo "Running all roles..."
+            ansible-playbook -i inventory/production.yml playbooks/initial-setup.yml \
+              -e "ansible_user=deploy" \
+              --become \
+              -v
+          else
+            echo "Running roles: $ROLES"
+            ansible-playbook -i inventory/production.yml playbooks/initial-setup.yml \
+              --tags "$ROLES" \
+              -e "ansible_user=deploy" \
+              --become \
+              -v
+          fi
+          echo "✅ Ansible changes applied successfully"
+
+      - name: Verify infrastructure
+        if: contains(inputs.roles, 'common') || inputs.roles == 'all' || inputs.roles == ''
+        run: |
+          echo "🔍 Verifying infrastructure changes..."
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'ENDSSH'
+          set -e
+          
+          echo ""
+          echo "=== Node.js and npm ==="
+          node --version || echo "❌ Node.js not installed"
+          npm --version || echo "❌ npm not installed"
+          
+          echo ""
+          echo "=== Docker ==="
+          docker --version || echo "❌ Docker not installed"
+          
+          echo ""
+          echo "=== System Info ==="
+          uname -a
+          echo ""
+          echo "✅ Infrastructure verification complete"
+          ENDSSH
+
+      - name: Upload Ansible logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ansible-logs-${{ github.sha }}
+          path: |
+            ~/.ansible/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Clean up SSH key
+        if: always()
+        run: |
+          rm -f ~/.ssh/deploy_key ~/.ssh/config
+
+      - name: Summary
+        if: success()
+        run: |
+          echo "✅ Infrastructure update completed successfully!"
+          echo "📝 Commit: ${{ github.sha }}"
+          echo "👤 Updated by: ${{ github.actor }}"
+          echo "🔧 Roles executed: ${{ inputs.roles }}"
