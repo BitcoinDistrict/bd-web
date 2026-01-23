@@ -65,14 +65,25 @@
     - { path: "{{ data_mount }}/caddy-data", mode: '0755' }
   tags: deploy-user
 
+- name: Check if package.json exists
+  stat:
+    path: "{{ app_dir }}/package.json"
+  register: package_json
+  tags: deploy-user
+  when: app_dir is defined
+
 - name: Install npm dependencies for import script
-  command: npm install
+  command: /usr/bin/npm install
   args:
     chdir: "{{ app_dir }}"
   become: yes
   become_user: "{{ app_user }}"
+  environment:
+    PATH: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
   tags: deploy-user
-  when: app_dir is defined
+  when: 
+    - app_dir is defined
+    - package_json.stat.exists
 
 - name: Create cron job for RSS event import
   cron:
