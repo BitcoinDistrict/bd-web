@@ -15,10 +15,194 @@ env:
   DEPLOY_PATH: /home/deploy/bd-web
 
 jobs:
+  # Separate job for infrastructure changes (Ansible)
+  infrastructure:
+    name: Apply Infrastructure Changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      changed: ${{ steps.detect_changes.outputs.changed }}
+      roles: ${{ steps.detect_changes.outputs.roles }}
+    if: |
+      !contains(github.event.head_commit.message, '[skip ansible]') &&
+      !contains(github.event.head_commit.message, '[skip infrastructure]')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect Ansible changes
+        id: detect_changes
+        run: |
+          # Check if this is the first commit (no parent) or if ansible files changed
+          if [ "$(git rev-list --count HEAD)" -eq 1 ]; then
+            # First commit - check if ansible directory exists
+            if [ -d "ansible" ] && [ "$(find ansible -type f | wc -l)" -gt 0 ]; then
+              echo "changed=true" >> $GITHUB_OUTPUT
+              echo "roles=all" >> $GITHUB_OUTPUT
+              echo "📋 First commit with Ansible files - will run all roles"
+            else
+              echo "changed=false" >> $GITHUB_OUTPUT
+              echo "roles=" >> $GITHUB_OUTPUT
+              echo "ℹ️  No Ansible files in first commit"
+            fi
+          else
+            # Check if ansible files changed compared to previous commit
+            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD | grep "^ansible/" || echo "")
+            if [ -n "$CHANGED_FILES" ]; then
+              echo "changed=true" >> $GITHUB_OUTPUT
+              echo "📋 Ansible files changed:"
+              echo "$CHANGED_FILES" | sed 's/^/  - /'
+              
+              # Determine which roles changed
+              ROLES=""
+              if echo "$CHANGED_FILES" | grep -qE "^ansible/playbooks/|^ansible/group_vars/|^ansible/inventory/"; then
+                ROLES="all"
+              else
+                for role in common deploy-user docker security caddy; do
+                  if echo "$CHANGED_FILES" | grep -q "^ansible/roles/$role/"; then
+                    ROLES="${ROLES}${role},"
+                  fi
+                done
+                # Also check group_vars for deploy-user related changes
+                if echo "$CHANGED_FILES" | grep -q "ansible/group_vars.*rss_import\|ansible/group_vars.*app_user\|ansible/group_vars.*app_dir"; then
+                  ROLES="${ROLES}deploy-user,"
+                fi
+                ROLES=$(echo "$ROLES" | sed 's/,$//')
+                if [ -z "$ROLES" ]; then
+                  ROLES="all"
+                fi
+              fi
+              echo "roles=$ROLES" >> $GITHUB_OUTPUT
+            else
+              echo "changed=false" >> $GITHUB_OUTPUT
+              echo "roles=" >> $GITHUB_OUTPUT
+              echo "ℹ️  No Ansible changes detected"
+            fi
+          fi
+
+      - name: Configure SSH
+        if: steps.detect_changes.outputs.changed == 'true'
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PRODUCTION_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
+          
+          # SSH config for Ansible
+          cat >> ~/.ssh/config << EOF
+          Host ${{ secrets.PRODUCTION_HOST }}
+            HostName ${{ secrets.PRODUCTION_HOST }}
+            User deploy
+            IdentityFile ~/.ssh/deploy_key
+            StrictHostKeyChecking no
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Cache Ansible installation
+        if: steps.detect_changes.outputs.changed == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/lib/python3.*/site-packages/ansible*
+          key: ansible-${{ runner.os }}-v1
+          restore-keys: |
+            ansible-${{ runner.os }}-
+
+      - name: Install Ansible
+        if: steps.detect_changes.outputs.changed == 'true'
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install ansible ansible-lint
+
+      - name: Validate Ansible syntax
+        if: steps.detect_changes.outputs.changed == 'true'
+        run: |
+          cd ansible
+          echo "🔍 Validating Ansible syntax..."
+          ansible-playbook --syntax-check -i inventory/production.yml playbooks/initial-setup.yml || {
+            echo "❌ Ansible syntax validation failed!"
+            exit 1
+          }
+          echo "✅ Ansible syntax is valid"
+
+      - name: Run Ansible in check mode (dry-run)
+        if: steps.detect_changes.outputs.changed == 'true'
+        env:
+          BD_WEB_HOST: ${{ secrets.PRODUCTION_HOST }}
+          ANSIBLE_HOST_KEY_CHECKING: False
+        run: |
+          cd ansible
+          echo "🔍 Running Ansible in check mode (dry-run)..."
+          
+          ROLES="${{ steps.detect_changes.outputs.roles }}"
+          if [ "$ROLES" = "all" ]; then
+            ansible-playbook -i inventory/production.yml playbooks/initial-setup.yml \
+              -e "ansible_user=deploy" \
+              --become \
+              --check \
+              --diff \
+              -v
+          else
+            ansible-playbook -i inventory/production.yml playbooks/initial-setup.yml \
+              --tags "$ROLES" \
+              -e "ansible_user=deploy" \
+              --become \
+              --check \
+              --diff \
+              -v
+          fi
+          echo "✅ Check mode completed - no errors detected"
+
+      - name: Apply Ansible changes
+        if: steps.detect_changes.outputs.changed == 'true'
+        env:
+          BD_WEB_HOST: ${{ secrets.PRODUCTION_HOST }}
+          ANSIBLE_HOST_KEY_CHECKING: False
+        run: |
+          cd ansible
+          echo "🚀 Applying Ansible changes..."
+          
+          ROLES="${{ steps.detect_changes.outputs.roles }}"
+          if [ "$ROLES" = "all" ]; then
+            ansible-playbook -i inventory/production.yml playbooks/initial-setup.yml \
+              -e "ansible_user=deploy" \
+              --become \
+              -v
+          else
+            ansible-playbook -i inventory/production.yml playbooks/initial-setup.yml \
+              --tags "$ROLES" \
+              -e "ansible_user=deploy" \
+              --become \
+              -v
+          fi
+          echo "✅ Ansible changes applied successfully"
+
+      - name: Upload Ansible logs
+        if: always() && steps.detect_changes.outputs.changed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ansible-logs-${{ github.sha }}
+          path: |
+            ~/.ansible/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Clean up SSH key
+        if: always()
+        run: |
+          rm -f ~/.ssh/deploy_key ~/.ssh/config
+
+  # Application deployment job
   deploy:
-    name: Deploy to Production Server
+    name: Deploy Application
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    needs: [infrastructure]
+    if: |
+      !contains(github.event.head_commit.message, '[skip deploy]') &&
+      !contains(github.event.head_commit.message, '[skip application]')
 
     steps:
       - name: Checkout code
@@ -79,6 +263,7 @@ jobs:
         run: |
           scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
             .env ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }}:${{ env.DEPLOY_PATH }}/.env
+
 
       - name: Validate and deploy Caddyfile
         run: |
@@ -180,7 +365,7 @@ jobs:
       - name: Clean up SSH key
         if: always()
         run: |
-          rm -f ~/.ssh/deploy_key
+          rm -f ~/.ssh/deploy_key ~/.ssh/config
 
       - name: Deployment summary
         if: success()
@@ -190,6 +375,11 @@ jobs:
           echo "⚙️  Admin panel: https://admin.bitcoindistrict.org"
           echo "📝 Commit: ${{ github.sha }}"
           echo "👤 Deployed by: ${{ github.actor }}"
+          if [ "${{ needs.infrastructure.outputs.changed }}" == "true" ]; then
+            echo "🔧 Infrastructure changes were applied (roles: ${{ needs.infrastructure.outputs.roles }})"
+          elif [ -n "${{ needs.infrastructure.outputs.changed }}" ]; then
+            echo "ℹ️  No infrastructure changes detected"
+          fi
 
       - name: Deployment failed
         if: failure()
