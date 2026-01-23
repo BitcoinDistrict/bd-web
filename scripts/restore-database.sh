@@ -233,55 +233,38 @@ if [ "$DB_ONLY" = false ]; then
     
     if [ "$COMPOSE_FILE" = "docker-compose.prod.yml" ]; then
         # Production: restore to /mnt/data/directus-uploads
+        # Use Docker to extract files to avoid sudo permission issues
         UPLOADS_DIR="/mnt/data/directus-uploads"
         echo -e "${YELLOW}  Restoring to production directory: ${UPLOADS_DIR}${NC}"
 
-        # Check if directory exists and create if needed
+        # Ensure directory exists (create via Docker if needed)
         if [ ! -d "$UPLOADS_DIR" ]; then
-            sudo mkdir -p "$UPLOADS_DIR"
-            if [ $? -ne 0 ]; then
-                echo -e "${RED}✗ Failed to create uploads directory${NC}"
+            PARENT_DIR=$(dirname "$UPLOADS_DIR")
+            if [ ! -d "$PARENT_DIR" ]; then
+                echo -e "${RED}✗ Parent directory does not exist: ${PARENT_DIR}${NC}"
+                echo -e "${YELLOW}  Please ensure /mnt/data exists and is accessible${NC}"
                 exit 1
             fi
+            # Create directory via Docker (runs as root in container)
+            docker run --rm -v "$PARENT_DIR:/mnt" alpine sh -c "mkdir -p /mnt/$(basename $UPLOADS_DIR) && chown 999:999 /mnt/$(basename $UPLOADS_DIR)" 2>/dev/null || true
         fi
 
-        # Set correct ownership (Directus runs as UID 999)
-        sudo chown -R 999:999 "$UPLOADS_DIR"
-        if [ $? -ne 0 ]; then
-            echo -e "${RED}✗ Failed to set directory ownership${NC}"
-            exit 1
-        fi
+        # Convert BACKUP_DIR to absolute path for Docker volume mount
+        ABS_BACKUP_DIR=$(cd "$BACKUP_DIR" 2>/dev/null && pwd || echo "$BACKUP_DIR")
+        ABS_UPLOADS_DIR=$(cd "$(dirname "$UPLOADS_DIR")" 2>/dev/null && pwd)/$(basename "$UPLOADS_DIR") || echo "$UPLOADS_DIR"
 
-        # Clear existing uploads using allowed commands
-        sudo rm -rf "${UPLOADS_DIR}"/*
-        if [ $? -ne 0 ]; then
-            echo -e "${YELLOW}⚠ Failed to clear existing uploads (may not exist yet)${NC}"
-        fi
+        # Use Docker to extract files and set correct ownership
+        # This runs as root in the container, so it can write to any directory
+        echo -e "${YELLOW}  Extracting uploads backup using Docker...${NC}"
+        docker run --rm \
+            -v "${ABS_UPLOADS_DIR}:/uploads" \
+            -v "${ABS_BACKUP_DIR}:/backup:ro" \
+            alpine sh -c "rm -rf /uploads/* && tar xzf /backup/directus-uploads-${BACKUP_TIMESTAMP}.tar.gz -C /uploads && chown -R 999:999 /uploads && chmod -R 755 /uploads"
 
-        # Extract backup using tar (not in sudoers, so use cp + tar as deploy user)
-        # First copy the backup to a temp location the deploy user can access
-        TEMP_BACKUP="/tmp/uploads_backup_$$.tar.gz"
-        cp "$UPLOADS_BACKUP" "$TEMP_BACKUP"
-        if [ $? -ne 0 ]; then
-            echo -e "${RED}✗ Failed to copy uploads backup to temp location${NC}"
-            exit 1
-        fi
-
-        # Extract as deploy user (no sudo needed)
-        tar xzf "$TEMP_BACKUP" -C "$UPLOADS_DIR"
-        if [ $? -ne 0 ]; then
+        EXTRACT_RESULT=$?
+        if [ $EXTRACT_RESULT -ne 0 ]; then
             echo -e "${RED}✗ Failed to extract uploads backup${NC}"
-            rm -f "$TEMP_BACKUP"
             exit 1
-        fi
-
-        # Clean up temp file
-        rm -f "$TEMP_BACKUP"
-
-        # Set final ownership
-        sudo chown -R 999:999 "$UPLOADS_DIR"
-        if [ $? -ne 0 ]; then
-            echo -e "${YELLOW}⚠ Failed to set final ownership, but extraction completed${NC}"
         fi
     else
         # Local: restore to Docker volume
