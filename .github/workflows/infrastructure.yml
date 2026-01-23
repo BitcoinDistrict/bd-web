@@ -59,6 +59,11 @@ jobs:
           python3 -m pip install --upgrade pip
           pip install ansible ansible-lint
 
+      - name: Install Ansible collections
+        run: |
+          cd ansible
+          ansible-galaxy collection install -r requirements.yml
+
       - name: Validate Ansible syntax
         run: |
           cd ansible

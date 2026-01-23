@@ -35,11 +35,28 @@
     state: present
   tags: common
 
-- name: Add NodeSource repository for Node.js
-  shell: |
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-  args:
-    creates: /etc/apt/sources.list.d/nodesource.list
+- name: Download NodeSource setup script
+  get_url:
+    url: https://deb.nodesource.com/setup_20.x
+    dest: /tmp/nodesource_setup.sh
+    mode: '0755'
+  tags: common
+
+- name: Check if NodeSource repository exists
+  stat:
+    path: /etc/apt/sources.list.d/nodesource.list
+  register: nodesource_repo
+  tags: common
+
+- name: Run NodeSource setup script
+  command: /tmp/nodesource_setup.sh
+  when: not nodesource_repo.stat.exists
+  tags: common
+
+- name: Remove NodeSource setup script
+  file:
+    path: /tmp/nodesource_setup.sh
+    state: absent
   tags: common
 
 - name: Install Node.js and npm
@@ -80,6 +97,13 @@
   register: swap_file
   tags: common
 
+- name: Check if swap is already enabled
+  command: swapon --show
+  register: swap_status
+  changed_when: false
+  failed_when: false
+  tags: common
+
 - name: Create swap file
   command: fallocate -l {{ swap_size_mb }}M {{ swap_location }}
   when: not swap_file.stat.exists
@@ -99,7 +123,9 @@
 
 - name: Enable swap file
   command: swapon {{ swap_location }}
-  when: not swap_file.stat.exists
+  when: 
+    - not swap_file.stat.exists
+    - swap_location not in swap_status.stdout
   tags: common
 
 - name: Add swap file to fstab

@@ -8,25 +8,15 @@
     - { direction: 'outgoing', policy: 'allow' }
   tags: security
 
-- name: Allow SSH through firewall
+- name: Allow required ports through firewall
   ufw:
     rule: allow
-    port: "{{ ssh_port }}"
-    proto: tcp
-  tags: security
-
-- name: Allow HTTP through firewall
-  ufw:
-    rule: allow
-    port: '80'
-    proto: tcp
-  tags: security
-
-- name: Allow HTTPS through firewall
-  ufw:
-    rule: allow
-    port: '443'
-    proto: tcp
+    port: "{{ item.port }}"
+    proto: "{{ item.proto }}"
+  loop:
+    - { port: "{{ ssh_port }}", proto: 'tcp' }
+    - { port: '80', proto: 'tcp' }
+    - { port: '443', proto: 'tcp' }
   tags: security
 
 - name: Enable UFW
@@ -61,48 +51,21 @@
     enabled: yes
   tags: security
 
-- name: Disable root SSH login
+- name: Configure SSH security settings
   lineinfile:
     path: /etc/ssh/sshd_config
-    regexp: '^#?PermitRootLogin'
-    line: 'PermitRootLogin prohibit-password'
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
     state: present
-  notify: restart ssh
-  tags: security
-
-- name: Disable password authentication for SSH
-  lineinfile:
-    path: /etc/ssh/sshd_config
-    regexp: '^#?PasswordAuthentication'
-    line: 'PasswordAuthentication no'
-    state: present
-  notify: restart ssh
-  tags: security
-
-- name: Enable public key authentication
-  lineinfile:
-    path: /etc/ssh/sshd_config
-    regexp: '^#?PubkeyAuthentication'
-    line: 'PubkeyAuthentication yes'
-    state: present
-  notify: restart ssh
-  tags: security
-
-- name: Disable empty passwords
-  lineinfile:
-    path: /etc/ssh/sshd_config
-    regexp: '^#?PermitEmptyPasswords'
-    line: 'PermitEmptyPasswords no'
-    state: present
-  notify: restart ssh
-  tags: security
-
-- name: Set SSH protocol to 2
-  lineinfile:
-    path: /etc/ssh/sshd_config
-    regexp: '^#?Protocol'
-    line: 'Protocol 2'
-    state: present
+    validate: '/usr/sbin/sshd -t -f %s'
+  loop:
+    - { regexp: '^#?PermitRootLogin', line: 'PermitRootLogin prohibit-password' }
+    - { regexp: '^#?PasswordAuthentication', line: 'PasswordAuthentication no' }
+    - { regexp: '^#?PubkeyAuthentication', line: 'PubkeyAuthentication yes' }
+    - { regexp: '^#?PermitEmptyPasswords', line: 'PermitEmptyPasswords no' }
+    - { regexp: '^#?Protocol', line: 'Protocol 2' }
+    - { regexp: '^#?MaxAuthTries', line: 'MaxAuthTries 3' }
+    - { regexp: '^#?X11Forwarding', line: 'X11Forwarding no' }
   notify: restart ssh
   tags: security
 
@@ -112,23 +75,6 @@
     regexp: '^#?AllowUsers'
     line: "AllowUsers {{ allowed_ssh_users | join(' ') }}"
     state: present
-  notify: restart ssh
-  tags: security
-
-- name: Set maximum authentication attempts
-  lineinfile:
-    path: /etc/ssh/sshd_config
-    regexp: '^#?MaxAuthTries'
-    line: 'MaxAuthTries 3'
-    state: present
-  notify: restart ssh
-  tags: security
-
-- name: Disable X11 forwarding
-  lineinfile:
-    path: /etc/ssh/sshd_config
-    regexp: '^#?X11Forwarding'
-    line: 'X11Forwarding no'
-    state: present
+    validate: '/usr/sbin/sshd -t -f %s'
   notify: restart ssh
   tags: security

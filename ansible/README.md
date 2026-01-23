@@ -362,10 +362,128 @@ ansible-playbook -i inventory/production.yml playbooks/initial-setup.yml
 - Keep SSH keys secure
 - Regularly update Ansible: `pip install --upgrade ansible`
 
+## Modern Ansible Best Practices Implemented
+
+### 1. No Deprecated Modules
+
+**Before (deprecated):**
+```yaml
+- name: Add Docker GPG key
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+```
+
+**After (modern):**
+```yaml
+- name: Download Docker GPG key
+  get_url:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    dest: /tmp/docker.gpg
+
+- name: Add Docker GPG key to keyring
+  command: gpg --dearmor -o /etc/apt/keyrings/docker.gpg /tmp/docker.gpg
+  args:
+    creates: /etc/apt/keyrings/docker.gpg
+```
+
+### 2. Proper Module Usage
+
+**Before (raw commands):**
+```yaml
+- name: Install npm dependencies
+  command: npm install
+  args:
+    chdir: "{{ app_dir }}"
+```
+
+**After (proper module):**
+```yaml
+- name: Install npm dependencies
+  community.general.npm:
+    path: "{{ app_dir }}"
+    state: present
+```
+
+### 3. Idempotency
+
+All tasks are idempotent and can be run multiple times safely:
+- Using `creates:` parameter for one-time commands
+- Checking file existence before operations
+- Using proper state management
+
+### 4. Task Consolidation
+
+**Before (repetitive):**
+```yaml
+- name: Allow SSH
+  ufw: rule=allow port=22
+- name: Allow HTTP
+  ufw: rule=allow port=80
+- name: Allow HTTPS
+  ufw: rule=allow port=443
+```
+
+**After (loop):**
+```yaml
+- name: Allow required ports
+  ufw:
+    rule: allow
+    port: "{{ item.port }}"
+  loop:
+    - { port: 22 }
+    - { port: 80 }
+    - { port: 443 }
+```
+
+### 5. Validation
+
+SSH configuration changes are validated before applying:
+```yaml
+- name: Configure SSH
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    validate: '/usr/sbin/sshd -t -f %s'
+```
+
+### 6. Role Dependencies
+
+Explicit role dependencies ensure correct execution order:
+```yaml
+# roles/deploy-user/meta/main.yml
+dependencies:
+  - role: common
+```
+
+### 7. Collections Management
+
+Required collections defined in `requirements.yml`:
+```yaml
+collections:
+  - name: community.general
+    version: ">=8.0.0"
+```
+
+### 8. Error Handling
+
+Proper error handling and verification:
+```yaml
+- name: Verify npm is installed
+  command: npm --version
+  register: npm_version
+  changed_when: false
+  failed_when: false
+
+- name: Install dependencies
+  community.general.npm:
+    path: "{{ app_dir }}"
+  when: npm_version.rc == 0
+```
+
 ## Additional Resources
 
 - [Ansible Documentation](https://docs.ansible.com/)
 - [Best Practices](https://docs.ansible.com/ansible/latest/user_guide/playbooks_best_practices.html)
+- [Ansible Collections](https://docs.ansible.com/ansible/latest/user_guide/collections_using.html)
 - [Main Deployment Guide](../README-DEPLOYMENT.md)
 
 ## Support

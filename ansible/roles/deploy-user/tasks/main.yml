@@ -72,18 +72,59 @@
   tags: deploy-user
   when: app_dir is defined
 
-- name: Install npm dependencies for import script
-  command: /usr/bin/npm install
-  args:
-    chdir: "{{ app_dir }}"
-  become: yes
-  become_user: "{{ app_user }}"
-  environment:
-    PATH: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+- name: Verify Node.js is installed
+  command: node --version
+  register: node_version
+  changed_when: false
+  failed_when: false
   tags: deploy-user
   when: 
     - app_dir is defined
-    - package_json.stat.exists
+    - package_json.stat.exists | default(false)
+
+- name: Verify npm is installed
+  command: npm --version
+  register: npm_version
+  changed_when: false
+  failed_when: false
+  tags: deploy-user
+  when: 
+    - app_dir is defined
+    - package_json.stat.exists | default(false)
+
+- name: Display Node.js and npm versions
+  debug:
+    msg: "Node.js {{ node_version.stdout }}, npm {{ npm_version.stdout }}"
+  when: 
+    - app_dir is defined
+    - package_json.stat.exists | default(false)
+    - node_version.rc == 0
+    - npm_version.rc == 0
+  tags: deploy-user
+
+- name: Find npm executable path
+  command: which npm
+  register: npm_path
+  changed_when: false
+  failed_when: false
+  tags: deploy-user
+  when: 
+    - app_dir is defined
+    - package_json.stat.exists | default(false)
+    - npm_version.rc == 0
+
+- name: Install npm dependencies for import script
+  community.general.npm:
+    path: "{{ app_dir }}"
+    state: present
+  become: yes
+  become_user: "{{ app_user }}"
+  tags: deploy-user
+  when: 
+    - app_dir is defined
+    - package_json.stat.exists | default(false)
+    - npm_version.rc == 0
+    - npm_path.rc == 0
 
 - name: Create cron job for RSS event import
   cron:
@@ -91,10 +132,13 @@
     user: "{{ app_user }}"
     minute: "{{ rss_import_cron_minute | default('0') }}"
     hour: "{{ rss_import_cron_hour | default('*/6') }}"
-    job: "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin NODE_ENV=production cd {{ app_dir }} && /usr/bin/npm run import-events >> {{ app_dir }}/logs/rss-import.log 2>&1"
+    job: "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin NODE_ENV=production cd {{ app_dir }} && {{ npm_path.stdout | default('npm') }} run import-events >> {{ app_dir }}/logs/rss-import.log 2>&1"
     state: present
   tags: deploy-user
-  when: rss_import_enabled | default(true)
+  when: 
+    - rss_import_enabled | default(true)
+    - npm_path is defined
+    - npm_path.rc == 0
 
 - name: Create logs directory for cron job output
   file:

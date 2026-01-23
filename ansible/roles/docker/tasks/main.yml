@@ -17,11 +17,23 @@
     mode: '0755'
   tags: docker
 
-- name: Add Docker GPG key
-  apt_key:
+- name: Download Docker GPG key
+  get_url:
     url: https://download.docker.com/linux/ubuntu/gpg
-    keyring: /etc/apt/keyrings/docker.gpg
-    state: present
+    dest: /tmp/docker.gpg
+    mode: '0644'
+  tags: docker
+
+- name: Add Docker GPG key to keyring
+  command: gpg --dearmor -o /etc/apt/keyrings/docker.gpg /tmp/docker.gpg
+  args:
+    creates: /etc/apt/keyrings/docker.gpg
+  tags: docker
+
+- name: Remove temporary GPG key file
+  file:
+    path: /tmp/docker.gpg
+    state: absent
   tags: docker
 
 - name: Get system architecture
