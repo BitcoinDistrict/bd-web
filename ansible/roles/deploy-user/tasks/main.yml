@@ -63,3 +63,36 @@
     - { path: "{{ data_mount }}/directus-uploads", owner: '999', group: '999', mode: '0755' }  # Directus runs as node user (UID 999 in v11)
     - { path: "{{ data_mount }}/caddy-data", mode: '0755' }
   tags: deploy-user
+
+- name: Install npm dependencies for import script
+  command: npm install
+  args:
+    chdir: "{{ app_dir }}"
+  become: yes
+  become_user: "{{ app_user }}"
+  tags: deploy-user
+  when: app_dir is defined
+
+- name: Create cron job for RSS event import
+  cron:
+    name: "Import RSS events from BitcoinOnly.events"
+    user: "{{ app_user }}"
+    minute: "{{ rss_import_cron_minute | default('0') }}"
+    hour: "{{ rss_import_cron_hour | default('*/6') }}"
+    job: "cd {{ app_dir }} && /usr/bin/npm run import-events >> {{ app_dir }}/logs/rss-import.log 2>&1"
+    environment:
+      PATH: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+      NODE_ENV: "production"
+    state: present
+  tags: deploy-user
+  when: rss_import_enabled | default(true)
+
+- name: Create logs directory for cron job output
+  file:
+    path: "{{ app_dir }}/logs"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    mode: '0755'
+  tags: deploy-user
+  when: app_dir is defined

@@ -35,6 +35,21 @@
     state: present
   tags: common
 
+- name: Add NodeSource repository for Node.js
+  shell: |
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+  args:
+    creates: /etc/apt/sources.list.d/nodesource.list
+  tags: common
+
+- name: Install Node.js and npm
+  apt:
+    name:
+      - nodejs
+    state: present
+    update_cache: yes
+  tags: common
+
 - name: Set timezone to {{ timezone }}
   timezone:
     name: "{{ timezone }}"

@@ -34,3 +34,11 @@ docker_users:
 caddy_log_dir: /var/log/caddy
 caddy_config_dir: /etc/caddy
 caddy_data_dir: "{{ data_mount }}/caddy-data"
+
+# RSS Event Import Cron Configuration
+# Set to false to disable the cron job
+rss_import_enabled: true
+# Cron schedule: runs every 6 hours by default (0 */6 * * *)
+# Format: minute hour (use */N for every N hours)
+rss_import_cron_minute: "0"
+rss_import_cron_hour: "*/4"
