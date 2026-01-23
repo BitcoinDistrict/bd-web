@@ -69,8 +69,30 @@ jobs:
           }
           echo "✅ Ansible syntax is valid"
 
+      - name: Test sudo access
+        id: test_sudo
+        run: |
+          echo "🔍 Testing sudo access for deploy user..."
+          if ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} \
+            "sudo -n true" 2>/dev/null; then
+            echo "✅ Passwordless sudo is configured"
+            echo "sudo_works=true" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️  Passwordless sudo not configured for deploy user"
+            echo "sudo_works=false" >> $GITHUB_OUTPUT
+            echo ""
+            echo "To fix this, SSH into the server as root and run:"
+            echo "  echo 'deploy ALL=(ALL) NOPASSWD: ALL' | sudo tee /etc/sudoers.d/deploy"
+            echo "  sudo chmod 0440 /etc/sudoers.d/deploy"
+            echo ""
+            echo "Or run the deploy-user role manually with root access first."
+          fi
+
       - name: Run Ansible in check mode (dry-run)
-        if: inputs.skip_check_mode == false
+        if: |
+          inputs.skip_check_mode == false &&
+          steps.test_sudo.outputs.sudo_works == 'true'
         env:
           BD_WEB_HOST: ${{ secrets.PRODUCTION_HOST }}
           ANSIBLE_HOST_KEY_CHECKING: False
@@ -97,7 +119,16 @@ jobs:
           fi
           echo "✅ Check mode completed - no errors detected"
 
+      - name: Skip check mode (sudo not configured)
+        if: |
+          inputs.skip_check_mode == false &&
+          steps.test_sudo.outputs.sudo_works == 'false'
+        run: |
+          echo "⚠️  Skipping check mode - passwordless sudo not configured"
+          echo "Please configure passwordless sudo first, then re-run this workflow"
+
       - name: Apply Ansible changes
+        if: steps.test_sudo.outputs.sudo_works == 'true'
         env:
           BD_WEB_HOST: ${{ secrets.PRODUCTION_HOST }}
           ANSIBLE_HOST_KEY_CHECKING: False
@@ -121,6 +152,19 @@ jobs:
               -v
           fi
           echo "✅ Ansible changes applied successfully"
+
+      - name: Error - Sudo not configured
+        if: steps.test_sudo.outputs.sudo_works == 'false'
+        run: |
+          echo "❌ Cannot proceed - passwordless sudo is not configured"
+          echo ""
+          echo "To fix this, SSH into your server as root and run:"
+          echo "  echo 'deploy ALL=(ALL) NOPASSWD: ALL' | sudo tee /etc/sudoers.d/deploy"
+          echo "  sudo chmod 0440 /etc/sudoers.d/deploy"
+          echo "  sudo visudo -cf /etc/sudoers.d/deploy  # Verify syntax"
+          echo ""
+          echo "Then re-run this workflow."
+          exit 1
 
       - name: Verify infrastructure
         if: contains(inputs.roles, 'common') || inputs.roles == 'all' || inputs.roles == ''
