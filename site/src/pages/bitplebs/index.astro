@@ -1,6 +1,7 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import { getEventsByTag, getDirectusUrl, type Event } from "../../lib/directus";
+import { parseESTDate } from "../../lib/utils";
 import dcbitplebsLogo from "../../assets/images/logos/dcbitplebs.png";
 
 // Prevent caching to ensure fresh data from Directus
@@ -28,8 +29,8 @@ const DIRECTUS_URL = getDirectusUrl();
 
 // Find the next upcoming event or the most recent past event
 const now = new Date();
-const upcomingEvents = events.filter(e => new Date(e.start_date_time) > now);
-const pastEvents = events.filter(e => new Date(e.start_date_time) <= now);
+const upcomingEvents = events.filter(e => parseESTDate(e.start_date_time) > now);
+const pastEvents = events.filter(e => parseESTDate(e.start_date_time) <= now);
 
 const featuredEvent = upcomingEvents.length > 0 
   ? upcomingEvents[0] 
@@ -71,7 +72,7 @@ const seo = {
     ) : featuredEvent ? (
       <section class="featured-event" aria-labelledby="featured-event-title">
         <div class="event-badge">
-          {new Date(featuredEvent.start_date_time) > now ? "Next Event" : "Latest Event"}
+          {parseESTDate(featuredEvent.start_date_time) > now ? "Next Event" : "Latest Event"}
         </div>
         
         <article class="event-card">
@@ -99,11 +100,12 @@ const seo = {
                   <line x1="3" y1="10" x2="21" y2="10"></line>
                 </svg>
                 <time datetime={featuredEvent.start_date_time}>
-                  {new Date(featuredEvent.start_date_time).toLocaleDateString("en-US", {
+                  {parseESTDate(featuredEvent.start_date_time).toLocaleDateString("en-US", {
                     weekday: "long",
                     year: "numeric",
                     month: "long",
                     day: "numeric",
+                    timeZone: "America/New_York",
                   })}
                 </time>
               </div>
@@ -114,15 +116,17 @@ const seo = {
                   <polyline points="12 6 12 12 16 14"></polyline>
                 </svg>
                 <span>
-                  {new Date(featuredEvent.start_date_time).toLocaleTimeString("en-US", {
+                  {parseESTDate(featuredEvent.start_date_time).toLocaleTimeString("en-US", {
                     hour: "numeric",
                     minute: "2-digit",
                     hour12: true,
+                    timeZone: "America/New_York",
                   })}
-                  {featuredEvent.end_date_time && ` - ${new Date(featuredEvent.end_date_time).toLocaleTimeString("en-US", {
+                  {featuredEvent.end_date_time && ` - ${parseESTDate(featuredEvent.end_date_time).toLocaleTimeString("en-US", {
                     hour: "numeric",
                     minute: "2-digit",
                     hour12: true,
+                    timeZone: "America/New_York",
                   })}`}
                 </span>
               </div>

@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { getEvents, type Event } from '../lib/directus';
+import { parseESTDate } from '../lib/utils';
 
 /**
  * ICS Calendar Endpoint
@@ -118,9 +119,9 @@ function generateICSEvent(event: Event): string {
   const uid = generateUID(event);
   const tzid = 'America/New_York';
   
-  // Parse dates from ISO strings
-  const startDate = new Date(event.start_date_time);
-  const endDate = event.end_date_time ? new Date(event.end_date_time) : new Date(startDate.getTime() + 2 * 60 * 60 * 1000); // Default 2 hours
+  // Parse dates from ISO strings, treating naive timestamps as EST/EDT
+  const startDate = parseESTDate(event.start_date_time);
+  const endDate = event.end_date_time ? parseESTDate(event.end_date_time) : new Date(startDate.getTime() + 2 * 60 * 60 * 1000); // Default 2 hours
   
   const dtstartLocal = formatICSDateInTZID(startDate, tzid);
   const dtendLocal = formatICSDateInTZID(endDate, tzid);

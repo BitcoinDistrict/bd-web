@@ -1,5 +1,6 @@
 ---
 import { getEvents, getDirectusUrl, type Event } from '../../lib/directus';
+import { parseESTDate } from '../../lib/utils';
 import calendarPlaceholder from '../../assets/images/calendar-btc.png';
 import StateIndicator from '../StateIndicator.astro';
 
@@ -31,24 +32,26 @@ const allEvents = result.data || [];
 const now = new Date();
 const upcomingEvents = allEvents
   .filter(event => {
-    const endDate = event.end_date_time ? new Date(event.end_date_time) : new Date(event.start_date_time);
+    const endDate = event.end_date_time ? parseESTDate(event.end_date_time) : parseESTDate(event.start_date_time);
     return endDate > now;
   })
   .slice(0, maxEvents);
 
-// Format date and time
+// Format date and time in America/New_York timezone
 function formatEventDate(startDate: string, endDate?: string | null): string {
-  const start = new Date(startDate);
+  const start = parseESTDate(startDate);
   
   const dateOptions: Intl.DateTimeFormatOptions = {
     month: 'short',
     day: 'numeric',
+    timeZone: 'America/New_York',
   };
 
   const timeOptions: Intl.DateTimeFormatOptions = {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
+    timeZone: 'America/New_York',
   };
 
   const dateStr = start.toLocaleDateString('en-US', dateOptions);

@@ -238,6 +238,7 @@ function parseEventDetails(htmlContent) {
 
 /**
  * Parse date and time strings into DateTime objects
+ * Parses EST/EDT times and converts them to UTC for storage
  */
 function parseDateTime(dateStr, timeStr) {
   if (!dateStr || !timeStr) {
@@ -267,31 +268,32 @@ function parseDateTime(dateStr, timeStr) {
     
     log(`  → Start time: "${startTime}", End time: "${endTime}"`, colors.cyan);
     
-    // Combine date and times
+    // Combine date and times - parse in America/New_York timezone
     const startDateTimeStr = `${dateStr} ${startTime}`;
     const endDateTimeStr = `${dateStr} ${endTime}`;
     
     log(`  → Combined start: "${startDateTimeStr}"`, colors.cyan);
     log(`  → Combined end: "${endDateTimeStr}"`, colors.cyan);
     
-    // Use JavaScript Date parsing (more forgiving)
-    const startDate = new Date(startDateTimeStr + ' EST');
-    const endDate = new Date(endDateTimeStr + ' EST');
+    // Parse the date/time in America/New_York timezone using dayjs
+    // dayjs will automatically handle EST/EDT based on the date
+    // Date format includes weekday: "Monday, January 26, 2026 6:00 PM"
+    const startDateTimeNY = dayjs.tz(startDateTimeStr, 'dddd, MMMM D, YYYY h:mm A', 'America/New_York');
+    const endDateTimeNY = dayjs.tz(endDateTimeStr, 'dddd, MMMM D, YYYY h:mm A', 'America/New_York');
     
-    if (isNaN(startDate) || isNaN(endDate)) {
+    if (!startDateTimeNY.isValid() || !endDateTimeNY.isValid()) {
       log(`  ⚠ Invalid date/time parsing`, colors.yellow);
       return { startDateTime: null, endDateTime: null };
     }
     
-    // Convert to dayjs for formatting
-    const startDateTime = dayjs(startDate);
-    const endDateTime = dayjs(endDate);
+    log(`  ✓ Parsed in EST/EDT: ${startDateTimeNY.format('YYYY-MM-DD HH:mm z')} - ${endDateTimeNY.format('HH:mm z')}`, colors.green);
     
-    log(`  ✓ Parsed successfully: ${startDateTime.format('YYYY-MM-DD HH:mm')} - ${endDateTime.format('HH:mm')}`, colors.green);
-    
+    // Since we're using timestamp without time zone, store EST times directly as naive timestamps
+    // Format as ISO 8601 without timezone indicator (naive timestamp)
+    // The frontend will interpret these as EST when displaying
     return {
-      startDateTime: startDateTime.format('YYYY-MM-DDTHH:mm:ss'),
-      endDateTime: endDateTime.format('YYYY-MM-DDTHH:mm:ss')
+      startDateTime: startDateTimeNY.format('YYYY-MM-DDTHH:mm:ss'),
+      endDateTime: endDateTimeNY.format('YYYY-MM-DDTHH:mm:ss')
     };
   } catch (error) {
     log(`  ⚠ Error parsing date/time: ${error.message}`, colors.yellow);

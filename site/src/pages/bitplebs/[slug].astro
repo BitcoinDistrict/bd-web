@@ -1,6 +1,7 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import { getEventByIdAndTag, getDirectusUrl, type Event } from "../../lib/directus";
+import { parseESTDate } from "../../lib/utils";
 import dcbitplebsLogo from "../../assets/images/logos/dcbitplebs.png";
 
 const cmsEnabled = import.meta.env.PUBLIC_CMS_ENABLED === "true";
@@ -36,7 +37,7 @@ const getEventDescription = (ev: Event) => {
 
 const DIRECTUS_URL = getDirectusUrl();
 const now = new Date();
-const isUpcoming = event && new Date(event.start_date_time) > now;
+const isUpcoming = event && parseESTDate(event.start_date_time) > now;
 ---
 
 {error || !event ? (
@@ -88,11 +89,12 @@ const isUpcoming = event && new Date(event.start_date_time) > now;
                     <line x1="3" y1="10" x2="21" y2="10"></line>
                   </svg>
                   <time datetime={event.start_date_time}>
-                    {new Date(event.start_date_time).toLocaleDateString("en-US", {
+                    {parseESTDate(event.start_date_time).toLocaleDateString("en-US", {
                       weekday: "long",
                       year: "numeric",
                       month: "long",
                       day: "numeric",
+                      timeZone: "America/New_York",
                     })}
                   </time>
                 </div>
@@ -103,15 +105,17 @@ const isUpcoming = event && new Date(event.start_date_time) > now;
                     <polyline points="12 6 12 12 16 14"></polyline>
                   </svg>
                   <span>
-                    {new Date(event.start_date_time).toLocaleTimeString("en-US", {
+                    {parseESTDate(event.start_date_time).toLocaleTimeString("en-US", {
                       hour: "numeric",
                       minute: "2-digit",
                       hour12: true,
+                      timeZone: "America/New_York",
                     })}
-                    {event.end_date_time && ` - ${new Date(event.end_date_time).toLocaleTimeString("en-US", {
+                    {event.end_date_time && ` - ${parseESTDate(event.end_date_time).toLocaleTimeString("en-US", {
                       hour: "numeric",
                       minute: "2-digit",
                       hour12: true,
+                      timeZone: "America/New_York",
                     })}`}
                   </span>
                 </div>
