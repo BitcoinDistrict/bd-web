@@ -114,11 +114,13 @@
     path: "{{ swap_location }}"
     mode: '0600'
   when: not swap_file.stat.exists
+  check_mode: false  # Skip in check mode since file won't exist yet
   tags: common
 
 - name: Format swap file
   command: mkswap {{ swap_location }}
   when: not swap_file.stat.exists
+  check_mode: false  # Skip in check mode since file won't exist yet
   tags: common
 
 - name: Enable swap file
@@ -126,6 +128,7 @@
   when: 
     - not swap_file.stat.exists
     - swap_location not in swap_status.stdout
+  check_mode: false  # Skip in check mode since file won't exist yet
   tags: common
 
 - name: Add swap file to fstab
