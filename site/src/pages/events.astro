@@ -2,6 +2,9 @@
 import Layout from '../layouts/Layout.astro';
 import EventsSection from '../components/sections/EventsSection.astro';
 
+// Prevent caching to ensure fresh data from Directus
+Astro.response.headers.set('Cache-Control', 'no-cache, must-revalidate');
+
 const seo = {
   title: 'Events',
   description: 'Upcoming Bitcoin District events in the DMV area.',

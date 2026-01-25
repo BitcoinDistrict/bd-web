@@ -3,6 +3,9 @@ import Layout from "../layouts/Layout.astro";
 import { getPageData, getPostData, getDirectusUrl } from "../lib/directus";
 import { Image } from "astro:assets";
 
+// Prevent caching to ensure fresh data from Directus
+Astro.response.headers.set('Cache-Control', 'no-cache, must-revalidate');
+
 const cmsEnabled = import.meta.env.PUBLIC_CMS_ENABLED === "true";
 
 const { slug } = Astro.params;

@@ -247,9 +247,10 @@ export const GET: APIRoute = async () => {
       headers: {
         'Content-Type': 'text/calendar; charset=utf-8',
         'Content-Disposition': 'inline; filename="bitcoin-district-events.ics"',
-        // Cache for 15 minutes (900 seconds)
+        // Cache for 5 minutes (300 seconds) - shorter cache since events can change
         // s-maxage is for CDN/shared caches, max-age is for browser cache
-        'Cache-Control': 'public, s-maxage=900, max-age=900',
+        // must-revalidate ensures fresh data after cache expires
+        'Cache-Control': 'public, s-maxage=300, max-age=300, must-revalidate',
         // Allow calendar apps to know when the file was last updated
         'Last-Modified': new Date().toUTCString(),
       },

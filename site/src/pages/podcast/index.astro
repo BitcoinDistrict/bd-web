@@ -4,6 +4,9 @@ import PageHeader from "../../components/PageHeader.astro";
 import PodcastList from "../../components/PodcastList.astro";
 import { getPodcastEpisodes, type PodcastEpisode } from "../../lib/directus";
 
+// Prevent caching to ensure fresh data from Directus
+Astro.response.headers.set('Cache-Control', 'no-cache, must-revalidate');
+
 const cmsEnabled = import.meta.env.PUBLIC_CMS_ENABLED === "true";
 
 let episodes: PodcastEpisode[] = [];

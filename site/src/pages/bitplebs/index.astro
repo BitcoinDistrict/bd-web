@@ -3,6 +3,9 @@ import Layout from "../../layouts/Layout.astro";
 import { getEventsByTag, getDirectusUrl, type Event } from "../../lib/directus";
 import dcbitplebsLogo from "../../assets/images/logos/dcbitplebs.png";
 
+// Prevent caching to ensure fresh data from Directus
+Astro.response.headers.set('Cache-Control', 'no-cache, must-revalidate');
+
 const cmsEnabled = import.meta.env.PUBLIC_CMS_ENABLED === "true";
 
 let events: Event[] = [];
