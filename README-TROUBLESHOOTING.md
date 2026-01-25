@@ -1054,6 +1054,41 @@ docker-compose exec cache redis-cli ping
 docker-compose logs cache
 ```
 
+3. **Directus health check failing with "EACCES: permission denied"**:
+
+**Symptoms**: Directus returns 503 on `/server/health` with error about `/directus/uploads/directus-health-file`
+
+**Cause**: Volume permissions mismatch between host and container
+
+**Immediate Fix (on production server)**:
+```bash
+# SSH into server
+ssh deploy@your-server
+
+# Run the fix script
+cd ~/bd-web
+sudo ./scripts/fix-directus-permissions.sh
+```
+
+**Or using Ansible**:
+```bash
+# From your local machine
+ansible-playbook -i ansible/inventory/production.yml \
+  ansible/playbooks/fix-directus-permissions.yml
+```
+
+**Manual Fix**:
+```bash
+# On the server
+sudo chown -R 1000:1000 /mnt/data/directus-uploads
+sudo chmod -R 755 /mnt/data/directus-uploads
+
+# Restart Directus
+docker compose -f docker-compose.prod.yml restart directus
+```
+
+**See**: `docs/directus-permissions-fix.md` for detailed explanation
+
 ### "No BitPlebs events found"
 
 **Cause**: No events tagged with "bitplebs" or CMS disabled

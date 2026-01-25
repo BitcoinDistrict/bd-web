@@ -36,6 +36,18 @@
         msg: "WARNING: .env file not found. Please create it with production secrets."
       when: not env_file.stat.exists
 
+    - name: Ensure directus-uploads directory has correct permissions
+      file:
+        path: "{{ data_mount }}/directus-uploads"
+        state: directory
+        owner: '1000'
+        group: '1000'
+        mode: '0755'
+        recurse: yes
+      become: yes
+      become_user: root
+      when: env_file.stat.exists
+
     - name: Pull latest Docker images
       command: docker compose -f docker-compose.prod.yml pull
       args:
@@ -58,10 +70,16 @@
       until: container_status.rc == 0
       when: env_file.stat.exists
 
-    - name: Reload Caddy configuration
-      command: systemctl reload caddy
-      become: yes
-      become_user: root
+    - name: Check Caddy container status
+      command: docker compose -f docker-compose.prod.yml ps caddy
+      args:
+        chdir: "{{ app_dir }}"
+      register: caddy_status
+      when: env_file.stat.exists
+
+    - name: Display Caddy status
+      debug:
+        var: caddy_status.stdout_lines
       when: env_file.stat.exists
 
     - name: Display deployment status

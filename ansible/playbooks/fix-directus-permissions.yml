@@ -1,0 +1,71 @@
+---
+- name: Fix Directus uploads directory permissions
+  hosts: bd-web
+  become: yes
+  gather_facts: yes
+
+  vars:
+    directus_uid: "1000"  # Directus runs as node user (UID 1000)
+    directus_gid: "1000"  # Directus runs as node group (GID 1000)
+    
+  tasks:
+    - name: Get Directus container user ID
+      shell: |
+        docker compose -f docker-compose.prod.yml exec -T directus id -u
+      args:
+        chdir: "{{ app_dir }}"
+      register: directus_uid_result
+      changed_when: false
+      failed_when: false
+      
+    - name: Get Directus container group ID
+      shell: |
+        docker compose -f docker-compose.prod.yml exec -T directus id -g
+      args:
+        chdir: "{{ app_dir }}"
+      register: directus_gid_result
+      changed_when: false
+      failed_when: false
+      
+    - name: Display detected Directus UID/GID
+      debug:
+        msg: "Directus container runs as UID {{ directus_uid_result.stdout | default('unknown') }}, GID {{ directus_gid_result.stdout | default('unknown') }}"
+      when: directus_uid_result.rc == 0
+      
+    - name: Fix ownership of directus-uploads directory
+      file:
+        path: "{{ data_mount }}/directus-uploads"
+        state: directory
+        owner: "{{ directus_uid_result.stdout | default(directus_uid) }}"
+        group: "{{ directus_gid_result.stdout | default(directus_gid) }}"
+        mode: '0755'
+        recurse: yes
+      when: directus_uid_result.rc == 0
+      
+    - name: Restart Directus container
+      shell: |
+        docker compose -f docker-compose.prod.yml restart directus
+      args:
+        chdir: "{{ app_dir }}"
+      when: directus_uid_result.rc == 0
+      
+    - name: Wait for Directus to be healthy
+      shell: |
+        docker compose -f docker-compose.prod.yml ps directus | grep -i healthy
+      args:
+        chdir: "{{ app_dir }}"
+      register: health_check
+      retries: 12
+      delay: 5
+      until: health_check.rc == 0
+      changed_when: false
+      failed_when: false
+      when: directus_uid_result.rc == 0
+      
+    - name: Display fix completion message
+      debug:
+        msg: |
+          Directus permissions have been fixed!
+          Directory: {{ data_mount }}/directus-uploads
+          Owner: UID {{ directus_uid_result.stdout | default(directus_uid) }}
+          Group: GID {{ directus_gid_result.stdout | default(directus_gid) }}
