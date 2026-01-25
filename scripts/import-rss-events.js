@@ -256,6 +256,7 @@ function parseDateTime(dateStr, timeStr) {
     // "Tuesday, January 20, 2026" + "7:00 PM — 8:30 PM EST"
     
     // Extract start and end times (handle various dash types: —, –, -)
+    // Also handle times with or without space before AM/PM: "10:30 AM" or "10:30AM"
     const timeMatch = timeStr.match(/(\d+:\d+\s*[AP]M)\s*[—–\-]\s*(\d+:\d+\s*[AP]M)/i);
     
     if (!timeMatch) {
@@ -263,8 +264,13 @@ function parseDateTime(dateStr, timeStr) {
       return { startDateTime: null, endDateTime: null };
     }
     
-    const startTime = timeMatch[1].trim();
-    const endTime = timeMatch[2].trim();
+    let startTime = timeMatch[1].trim();
+    let endTime = timeMatch[2].trim();
+    
+    // Normalize time strings: ensure space before AM/PM
+    // Handle cases like "10:30AM" -> "10:30 AM" or "10:30 AM" -> "10:30 AM" (no change)
+    startTime = startTime.replace(/(\d)([AP]M)/i, '$1 $2');
+    endTime = endTime.replace(/(\d)([AP]M)/i, '$1 $2');
     
     log(`  → Start time: "${startTime}", End time: "${endTime}"`, colors.cyan);
     
@@ -278,11 +284,107 @@ function parseDateTime(dateStr, timeStr) {
     // Parse the date/time in America/New_York timezone using dayjs
     // dayjs will automatically handle EST/EDT based on the date
     // Date format includes weekday: "Monday, January 26, 2026 6:00 PM"
-    const startDateTimeNY = dayjs.tz(startDateTimeStr, 'dddd, MMMM D, YYYY h:mm A', 'America/New_York');
-    const endDateTimeNY = dayjs.tz(endDateTimeStr, 'dddd, MMMM D, YYYY h:mm A', 'America/New_York');
+    // Format: dddd (day name), MMMM (month name), D (day), YYYY (year), h:mm A (time with AM/PM)
     
-    if (!startDateTimeNY.isValid() || !endDateTimeNY.isValid()) {
-      log(`  ⚠ Invalid date/time parsing`, colors.yellow);
+    // Parse the date/time string manually to extract components
+    // Format: "Saturday, November 8, 2025 10:30 AM"
+    // We'll parse the components and construct the date in America/New_York timezone
+    
+    let startDateTimeNY, endDateTimeNY;
+    
+    try {
+      // Extract date and time components using regex
+      // Pattern: "Weekday, Month Day, Year Hour:Minute AM/PM"
+      // Allow optional trailing whitespace
+      const dateTimePattern = /^[^,]+,\s+(\w+)\s+(\d+),\s+(\d+)\s+(\d+):(\d+)\s+(AM|PM)\s*$/i;
+      
+      // Trim strings to remove any leading/trailing whitespace
+      const trimmedStart = startDateTimeStr.trim();
+      const trimmedEnd = endDateTimeStr.trim();
+      
+      let startMatch = trimmedStart.match(dateTimePattern);
+      let endMatch = trimmedEnd.match(dateTimePattern);
+      
+      // If strict pattern doesn't match, try more lenient pattern
+      if (!startMatch || !endMatch) {
+        log(`  → Strict pattern failed, trying lenient pattern...`, colors.cyan);
+        const lenientPattern = /(\w+)\s+(\d+),\s+(\d+)\s+(\d+):(\d+)\s+(AM|PM)/i;
+        const startMatchLenient = trimmedStart.match(lenientPattern);
+        const endMatchLenient = trimmedEnd.match(lenientPattern);
+        
+        if (startMatchLenient && endMatchLenient) {
+          log(`  → Lenient pattern matched`, colors.green);
+          // Reconstruct match array with full match as first element
+          startMatch = [trimmedStart, ...startMatchLenient.slice(1)];
+          endMatch = [trimmedEnd, ...endMatchLenient.slice(1)];
+        } else {
+          log(`  ⚠ Could not extract date/time components from strings`, colors.yellow);
+          log(`  → Start string: "${trimmedStart}"`, colors.yellow);
+          log(`  → End string: "${trimmedEnd}"`, colors.yellow);
+          return { startDateTime: null, endDateTime: null };
+        }
+      } else {
+        log(`  → Regex matched successfully`, colors.green);
+      }
+      
+      log(`  → Start match groups: ${JSON.stringify(startMatch.slice(1))}`, colors.cyan);
+      log(`  → End match groups: ${JSON.stringify(endMatch.slice(1))}`, colors.cyan);
+      
+      // Parse components: [fullMatch, month, day, year, hour, minute, ampm]
+      const parseComponents = (match) => {
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                           'July', 'August', 'September', 'October', 'November', 'December'];
+        const monthName = match[1];
+        const month = monthNames.indexOf(monthName);
+        if (month === -1) {
+          throw new Error(`Invalid month name: ${monthName}`);
+        }
+        const day = parseInt(match[2], 10);
+        const year = parseInt(match[3], 10);
+        let hour = parseInt(match[4], 10);
+        const minute = parseInt(match[5], 10);
+        const ampm = match[6].toUpperCase();
+        
+        // Convert to 24-hour format
+        if (ampm === 'PM' && hour !== 12) hour += 12;
+        if (ampm === 'AM' && hour === 12) hour = 0;
+        
+        return { year, month, day, hour, minute };
+      };
+      
+      const startComponents = parseComponents(startMatch);
+      const endComponents = parseComponents(endMatch);
+      
+      // Create ISO-like strings from components, then parse in America/New_York timezone
+      // Format: YYYY-MM-DDTHH:mm:ss (we'll parse this as local time in America/New_York)
+      const startISO = `${startComponents.year}-${String(startComponents.month + 1).padStart(2, '0')}-${String(startComponents.day).padStart(2, '0')}T${String(startComponents.hour).padStart(2, '0')}:${String(startComponents.minute).padStart(2, '0')}:00`;
+      const endISO = `${endComponents.year}-${String(endComponents.month + 1).padStart(2, '0')}-${String(endComponents.day).padStart(2, '0')}T${String(endComponents.hour).padStart(2, '0')}:${String(endComponents.minute).padStart(2, '0')}:00`;
+      
+      log(`  → Created ISO strings: start="${startISO}", end="${endISO}"`, colors.cyan);
+      
+      // Parse as local time in America/New_York timezone
+      // dayjs.tz() with format string treats the input as local time in the specified timezone
+      startDateTimeNY = dayjs.tz(startISO, 'YYYY-MM-DDTHH:mm:ss', 'America/New_York');
+      endDateTimeNY = dayjs.tz(endISO, 'YYYY-MM-DDTHH:mm:ss', 'America/New_York');
+      
+      log(`  → Parsed dates: start valid=${startDateTimeNY.isValid()}, end valid=${endDateTimeNY.isValid()}`, colors.cyan);
+      if (startDateTimeNY.isValid()) {
+        log(`  → Start date: ${startDateTimeNY.format('YYYY-MM-DD HH:mm z')}`, colors.cyan);
+      }
+      if (endDateTimeNY.isValid()) {
+        log(`  → End date: ${endDateTimeNY.format('YYYY-MM-DD HH:mm z')}`, colors.cyan);
+      }
+      
+      if (!startDateTimeNY.isValid() || !endDateTimeNY.isValid()) {
+        log(`  ⚠ Invalid date/time after manual parsing`, colors.yellow);
+        log(`  → Start valid: ${startDateTimeNY.isValid()}, End valid: ${endDateTimeNY.isValid()}`, colors.yellow);
+        return { startDateTime: null, endDateTime: null };
+      }
+      
+      log(`  ✓ Manual parsing succeeded`, colors.green);
+    } catch (parseError) {
+      log(`  ⚠ Error during manual date parsing: ${parseError.message}`, colors.yellow);
+      log(`  → Stack: ${parseError.stack}`, colors.yellow);
       return { startDateTime: null, endDateTime: null };
     }
     
