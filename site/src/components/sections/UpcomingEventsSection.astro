@@ -1,6 +1,7 @@
 ---
 import { getEvents, getDirectusUrl, type Event } from '../../lib/directus';
 import calendarPlaceholder from '../../assets/images/calendar-btc.png';
+import StateIndicator from '../StateIndicator.astro';
 
 interface Props {
   title: string;
@@ -8,6 +9,7 @@ interface Props {
   background?: 'white' | 'gray';
   maxEvents?: number;
   class?: string;
+  showStateIndicator?: boolean;
 }
 
 const { 
@@ -15,7 +17,8 @@ const {
   subtitle, 
   background = 'white', 
   maxEvents = 4,
-  class: className = '' 
+  class: className = '',
+  showStateIndicator = true
 } = Astro.props;
 
 const bgClass = background === 'gray' ? 'bg-gray-50' : 'bg-white';
@@ -111,6 +114,7 @@ function getEventImageUrl(event: Event): string {
               >
                 <div class="card-image">
                   <img src={imageUrl} alt={event.title} class="event-image" />
+                  <StateIndicator sourceFeed={event.source_feed} enabled={showStateIndicator} />
                 </div>
               </a>
               <div class="card-body">
@@ -232,6 +236,7 @@ function getEventImageUrl(event: Event): string {
     aspect-ratio: 1 / 1;
     overflow: hidden;
     background: #f3f4f6;
+    position: relative;
   }
 
   .card-image img {

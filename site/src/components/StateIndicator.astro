@@ -1,0 +1,65 @@
+---
+import { getStateIndicatorImage } from '../lib/utils';
+import dcRound from '../assets/images/dc_round.png';
+import mdRound from '../assets/images/md_round.png';
+import vaRound from '../assets/images/va_round.png';
+
+interface Props {
+  sourceFeed?: string | null;
+  enabled?: boolean;
+}
+
+const { sourceFeed, enabled = true } = Astro.props;
+
+if (!enabled) {
+  return null;
+}
+
+const imageName = getStateIndicatorImage(sourceFeed);
+if (!imageName) {
+  return null;
+}
+
+// Map image name to imported image
+const imageMap: Record<string, ImageMetadata> = {
+  'dc_round.png': dcRound,
+  'md_round.png': mdRound,
+  'va_round.png': vaRound,
+};
+
+const image = imageMap[imageName];
+if (!image) {
+  return null;
+}
+---
+
+<img 
+  src={image.src} 
+  alt="" 
+  class="state-indicator"
+  width="40"
+  height="40"
+/>
+
+<style>
+  .state-indicator {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 40px;
+    height: 40px;
+    z-index: 10;
+    border-radius: 50%;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    object-fit: cover;
+  }
+
+  @media (max-width: 768px) {
+    .state-indicator {
+      width: 32px;
+      height: 32px;
+      top: 6px;
+      left: 6px;
+    }
+  }
+</style>

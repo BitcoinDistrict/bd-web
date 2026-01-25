@@ -1,12 +1,14 @@
 ---
 import { getEvents, getDirectusUrl, type Event } from '../lib/directus';
 import calendarPlaceholder from '../assets/images/calendar-btc.png';
+import StateIndicator from './StateIndicator.astro';
 
 interface Props {
   class?: string;
+  showStateIndicator?: boolean;
 }
 
-const { class: className = '' } = Astro.props;
+const { class: className = '', showStateIndicator = true } = Astro.props;
 
 const result = await getEvents();
 const allEvents = result.data || [];
@@ -100,6 +102,7 @@ function hasMoreContent(html: string): boolean {
             >
               <div class="event-image">
                 <img src={imageUrl} alt={event.title} class="event-list-image" />
+                <StateIndicator sourceFeed={event.source_feed} enabled={showStateIndicator} />
               </div>
             </a>
 
@@ -185,6 +188,7 @@ function hasMoreContent(html: string): boolean {
     aspect-ratio: 1 / 1;
     overflow: hidden;
     background: #f3f4f6;
+    position: relative;
   }
 
   .event-image img {

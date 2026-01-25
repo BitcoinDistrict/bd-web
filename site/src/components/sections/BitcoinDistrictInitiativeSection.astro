@@ -1,0 +1,165 @@
+---
+import bdiImage from '../../assets/images/pk_bdi_live.jpg';
+
+interface Props {
+  background?: 'white' | 'gray';
+  class?: string;
+}
+
+const { background = 'white', class: className = '' } = Astro.props;
+const bgClass = background === 'gray' ? 'bg-gray-50' : 'bg-white';
+---
+
+<section class={`bitcoin-district-initiative-section ${bgClass} ${className}`}>
+  <div class="container">
+    <div class="content-wrapper">
+      <!-- Left Column: Text Content -->
+      <div class="text-content">
+        <h2 class="title">Bitcoin District Initiative</h2>
+        <p class="subtitle">
+          Check out what the Bitcoin District Initiative, a 501(c)(3) nonprofit, is doing to advance Bitcoin adoption in the DMV!
+        </p>
+        <a 
+          href="https://bitcoindistrictinitiative.org" 
+          class="cta-button"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Visit Website
+        </a>
+      </div>
+
+      <!-- Right Column: Image -->
+      <div class="image-wrapper">
+        <a 
+          href="https://bitcoindistrictinitiative.org" 
+          class="image-link"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Visit Bitcoin District Initiative website"
+        >
+          <img 
+            src={bdiImage.src}
+            alt="Bitcoin District Initiative"
+            class="bdi-image"
+          />
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .bitcoin-district-initiative-section {
+    padding: 4rem 1rem;
+    width: 100%;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .content-wrapper {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    align-items: center;
+  }
+
+  .text-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .title {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #111827;
+    margin: 0;
+    line-height: 1.2;
+  }
+
+  .subtitle {
+    font-size: 1.125rem;
+    line-height: 1.6;
+    color: #4b5563;
+    margin: 0;
+  }
+
+  .cta-button {
+    display: inline-block;
+    padding: 0.875rem 2rem;
+    background-color: #f7931a;
+    color: white;
+    font-weight: 600;
+    font-size: 1rem;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    align-self: flex-start;
+    border: 2px solid #f7931a;
+  }
+
+  .cta-button:hover {
+    background-color: #d97706;
+    border-color: #d97706;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(247, 147, 26, 0.3);
+  }
+
+  .image-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .image-link {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    transition: transform 0.3s ease;
+  }
+
+  .image-link:hover {
+    transform: scale(1.05);
+  }
+
+  .bdi-image {
+    width: 100%;
+    max-width: 500px;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  }
+
+  @media (max-width: 768px) {
+    .bitcoin-district-initiative-section {
+      padding: 3rem 1rem;
+    }
+
+    .content-wrapper {
+      grid-template-columns: 1fr;
+      gap: 2.5rem;
+    }
+
+    .title {
+      font-size: 2rem;
+      text-align: center;
+    }
+
+    .subtitle {
+      text-align: center;
+    }
+
+    .cta-button {
+      align-self: center;
+    }
+
+    .bdi-image {
+      max-width: 100%;
+    }
+  }
+</style>

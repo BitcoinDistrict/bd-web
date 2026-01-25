@@ -499,6 +499,7 @@ export async function getPageData(slug: string): Promise<CmsResult<any>> {
     } | null;
     date_created?: string;
     date_updated?: string;
+    source_feed?: string | null;
   }
 
   /**
@@ -530,7 +531,8 @@ export async function getPageData(slug: string): Promise<CmsResult<any>> {
               "location.id",
               "location.name",
               "location.address",
-              "image.*"
+              "image.*",
+              "source_feed"
             ],
             filter: {
               status: {
