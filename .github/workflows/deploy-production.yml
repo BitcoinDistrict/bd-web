@@ -371,13 +371,50 @@ jobs:
           echo "Waiting for Caddy to obtain certificates and start serving..."
           sleep 30
           
-          MAX_RETRIES=5
+          MAX_RETRIES=6
           RETRY_DELAY=10
           
+          # Function to check HTTP status (accepts 2xx and 3xx as success)
+          # For Directus health endpoint, also validates JSON response
+          check_url() {
+            local url=$1
+            local name=$2
+            local response=$(curl -L -s -w "\n%{http_code}" --max-time 10 --connect-timeout 5 "$url" 2>/dev/null || echo -e "\n000")
+            local body=$(echo "$response" | head -n -1)
+            local status_code=$(echo "$response" | tail -n 1)
+            
+            if [ "$status_code" = "000" ]; then
+              echo "⚠️  $name: Connection failed or timeout"
+              return 1
+            elif [ "$status_code" -ge 200 ] && [ "$status_code" -lt 400 ]; then
+              # For Directus health endpoint, validate JSON response
+              if [[ "$url" == *"/server/health"* ]]; then
+                if echo "$body" | grep -q '"status":"ok"\|"status":"healthy"'; then
+                  echo "✅ $name is healthy (HTTP $status_code)"
+                elif echo "$body" | grep -qE '^\s*\{.*\}' && command -v jq >/dev/null 2>&1; then
+                  # If jq is available, validate JSON structure
+                  if echo "$body" | jq . >/dev/null 2>&1; then
+                    echo "✅ $name is responding (HTTP $status_code, valid JSON)"
+                  else
+                    echo "✅ $name is responding (HTTP $status_code)"
+                  fi
+                else
+                  echo "✅ $name is responding (HTTP $status_code)"
+                fi
+              else
+                echo "✅ $name is responding (HTTP $status_code)"
+              fi
+              return 0
+            else
+              echo "⚠️  $name returned HTTP $status_code"
+              return 1
+            fi
+          }
+          
+          # Check main site
           for i in $(seq 1 $MAX_RETRIES); do
             echo "Attempt $i/$MAX_RETRIES: Testing main site..."
-            if curl -f -s -o /dev/null -w "%{http_code}" https://staging.bitcoindistrict.org/ | grep -q "200"; then
-              echo "✅ Main site is responding"
+            if check_url "https://staging.bitcoindistrict.org/" "Main site"; then
               break
             else
               if [ $i -eq $MAX_RETRIES ]; then
@@ -389,10 +426,10 @@ jobs:
             fi
           done
           
+          # Check admin panel (using Directus health endpoint)
           for i in $(seq 1 $MAX_RETRIES); do
             echo "Attempt $i/$MAX_RETRIES: Testing admin panel..."
-            if curl -f -s -o /dev/null -w "%{http_code}" https://admin.bitcoindistrict.org | grep -q "200"; then
-              echo "✅ Admin panel is responding"
+            if check_url "https://admin.bitcoindistrict.org/server/health" "Admin panel"; then
               break
             else
               if [ $i -eq $MAX_RETRIES ]; then

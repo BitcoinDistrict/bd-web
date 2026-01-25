@@ -76,6 +76,12 @@ services:
         condition: service_healthy
       cache:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:8055/server/health', (r) => {if (r.statusCode >= 200 && r.statusCode < 400) process.exit(0); else process.exit(1);}).on('error', () => process.exit(1));\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - bd-network
     restart: unless-stopped
@@ -156,7 +162,7 @@ services:
       astro:
         condition: service_healthy
       directus:
-        condition: service_started
+        condition: service_healthy
     restart: unless-stopped
     logging:
       driver: "json-file"
