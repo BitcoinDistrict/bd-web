@@ -331,9 +331,6 @@ jobs:
           set -e
           cd ${{ env.DEPLOY_PATH }}
           
-          echo "Creating Caddy data directories..."
-          mkdir -p /mnt/data/caddy-data /mnt/data/caddy-config
-          
           echo "Pulling latest Docker images..."
           docker compose -f docker-compose.prod.yml pull
           

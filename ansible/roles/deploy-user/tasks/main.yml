@@ -63,6 +63,7 @@
     - { path: "{{ data_mount }}/postgres", owner: '70', group: '70', mode: '0700' }  # PostgreSQL container runs as postgres user (UID 70)
     - { path: "{{ data_mount }}/directus-uploads", owner: '999', group: '999', mode: '0755' }  # Directus runs as node user (UID 999 in v11)
     - { path: "{{ data_mount }}/caddy-data", mode: '0755' }
+    - { path: "{{ data_mount }}/caddy-config", mode: '0755' }  # Caddy config directory
   tags: deploy-user
 
 - name: Check if package.json exists
