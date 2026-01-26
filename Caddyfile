@@ -25,19 +25,51 @@ admin.bitcoindistrict.org {
         level INFO
     }
 
-    # Proxy to Directus container (use container name, not localhost)
-    reverse_proxy http://directus:8055 {
-        # Forward real client information
-        header_up Host {host}
-        header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
-        header_up X-Forwarded-Proto {scheme}
-        header_up X-Forwarded-Host {host}
+    # Handle assets endpoint with CORS headers for cross-origin requests
+    # This is critical for iOS Safari which is stricter about CORS
+    handle_path /assets* {
+        # CORS headers for cross-origin asset requests from staging.bitcoindistrict.org
+        header {
+            Access-Control-Allow-Origin "https://staging.bitcoindistrict.org"
+            Access-Control-Allow-Methods "GET, HEAD, OPTIONS"
+            Access-Control-Allow-Headers "Range"
+            Access-Control-Expose-Headers "Content-Range, Content-Length, Accept-Ranges"
+            # Cache static assets
+            Cache-Control "public, max-age=31536000, immutable"
+        }
         
-        # Timeouts for longer operations
-        transport http {
-            dial_timeout 10s
-            response_header_timeout 60s
+        # Handle preflight OPTIONS requests
+        @options {
+            method OPTIONS
+        }
+        handle @options {
+            respond 204
+        }
+        
+        reverse_proxy http://directus:8055 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-Host {host}
+        }
+    }
+
+    # Proxy to Directus container (use container name, not localhost)
+    handle {
+        reverse_proxy http://directus:8055 {
+            # Forward real client information
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-Host {host}
+            
+            # Timeouts for longer operations
+            transport http {
+                dial_timeout 10s
+                response_header_timeout 60s
+            }
         }
     }
 }

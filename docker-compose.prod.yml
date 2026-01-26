@@ -66,6 +66,9 @@ services:
       RATE_LIMITER_POINTS: "50"
       RATE_LIMITER_DURATION: "1"
       ASSETS_CACHE_TTL: "30d"
+      # Content Security Policy for assets - allows media files (images, audio) to load
+      # This is critical for iOS Safari which enforces CSP strictly
+      ASSETS_CONTENT_SECURITY_POLICY: "default-src 'self'; img-src 'self' data: https:; media-src 'self' data: https:;"
       # Public asset access - CRITICAL for frontend to access images/audio
       # This ensures the Public role can read files without authentication
       PUBLIC_REGISTRATION: "false"
