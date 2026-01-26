@@ -36,7 +36,7 @@ Internet → Cloudflare DNS → Caddy (Reverse Proxy) → Docker Containers
 |---------|---------|------|-----|
 | Caddy | Reverse proxy, SSL/TLS | 80, 443 | - |
 | Astro | Frontend application | 4321 | https://staging.bitcoindistrict.org |
-| Directus | Headless CMS | 8055 | https://admin.bitcoindistrict.org |
+| Directus | Headless CMS | 8055 | https://cms.bitcoindistrict.org |
 | PostgreSQL | Database | 5432 | Internal only |
 | Redis | Cache | 6379 | Internal only |
 
@@ -250,7 +250,7 @@ graph LR
 ### Public URLs
 
 - **Main Site**: https://staging.bitcoindistrict.org
-- **Admin Panel**: https://admin.bitcoindistrict.org
+- **Admin Panel**: https://cms.bitcoindistrict.org
 - **Assets**: https://staging.bitcoindistrict.org/assets/*
 
 ### SSH Access

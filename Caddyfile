@@ -8,7 +8,7 @@
 }
 
 # Directus admin UI and API - subdomain approach (recommended by Directus)
-admin.bitcoindistrict.org {
+cms.bitcoindistrict.org {
     # Automatic HTTPS via Let's Encrypt
     
     # Enable gzip compression

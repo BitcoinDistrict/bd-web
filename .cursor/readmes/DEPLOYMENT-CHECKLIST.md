@@ -186,7 +186,7 @@ exit
 ```bash
 # Check the sites are accessible
 curl -I https://staging.bitcoindistrict.org/
-curl -I https://admin.bitcoindistrict.org/
+curl -I https://cms.bitcoindistrict.org/
 ```
 
 - [ ] Main site returns 200 OK

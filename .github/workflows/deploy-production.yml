@@ -293,7 +293,7 @@ jobs:
           DIRECTUS_ADMIN_PASSWORD=${{ secrets.DIRECTUS_ADMIN_PASSWORD }}
           
           # Public URLs
-          PUBLIC_DIRECTUS_URL=https://admin.bitcoindistrict.org
+          PUBLIC_DIRECTUS_URL=https://cms.bitcoindistrict.org
           
           # CMS Enable/Disable
           PUBLIC_CMS_ENABLED=${{ secrets.PUBLIC_CMS_ENABLED || 'true' }}
@@ -429,7 +429,7 @@ jobs:
           # Check admin panel (using Directus health endpoint)
           for i in $(seq 1 $MAX_RETRIES); do
             echo "Attempt $i/$MAX_RETRIES: Testing admin panel..."
-            if check_url "https://admin.bitcoindistrict.org/server/health" "Admin panel"; then
+            if check_url "https://cms.bitcoindistrict.org/server/health" "Admin panel"; then
               break
             else
               if [ $i -eq $MAX_RETRIES ]; then
@@ -451,7 +451,7 @@ jobs:
         run: |
           echo "✅ Deployment completed successfully!"
           echo "🌐 Main site: https://staging.bitcoindistrict.org"
-          echo "⚙️  Admin panel: https://admin.bitcoindistrict.org"
+          echo "⚙️  Admin panel: https://cms.bitcoindistrict.org"
           echo "📝 Commit: ${{ github.sha }}"
           echo "👤 Deployed by: ${{ github.actor }}"
           if [ "${{ needs.infrastructure.outputs.changed }}" == "true" ]; then

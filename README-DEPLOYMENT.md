@@ -30,7 +30,7 @@ The production infrastructure consists of:
 ### URL Structure
 
 - Main site: `https://staging.bitcoindistrict.org`
-- Admin panel: `https://admin.bitcoindistrict.org`
+- Admin panel: `https://cms.bitcoindistrict.org`
 - Assets: `https://staging.bitcoindistrict.org/assets/*`
 
 ### Server Layout
@@ -239,7 +239,7 @@ Wait 1-5 minutes, then verify:
 
 ```bash
 dig staging.bitcoindistrict.org +short
-dig admin.bitcoindistrict.org +short
+dig cms.bitcoindistrict.org +short
 ```
 
 Both should return Cloudflare IPs (not your server IP) when proxied, which is correct.
@@ -311,7 +311,7 @@ sudo systemctl status caddy
    - Should show the Bitcoin District homepage
    - Check browser console for errors
 
-2. **Admin panel**: https://admin.bitcoindistrict.org
+2. **Admin panel**: https://cms.bitcoindistrict.org
    - Should show Directus login
    - Login with `DIRECTUS_ADMIN_EMAIL` and `DIRECTUS_ADMIN_PASSWORD`
 
@@ -324,7 +324,7 @@ sudo systemctl status caddy
 
 After first deployment, log into Directus to generate API tokens:
 
-1. Go to https://admin.bitcoindistrict.org
+1. Go to https://cms.bitcoindistrict.org
 2. Login with admin credentials
 3. Navigate to **Settings** → **Access Tokens**
 4. Create two tokens:
