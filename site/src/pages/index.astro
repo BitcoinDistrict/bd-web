@@ -4,9 +4,14 @@ import BitcoinStatsSection from "../components/sections/BitcoinStatsSection.astr
 import UpcomingEventsSection from "../components/sections/UpcomingEventsSection.astro";
 import BitcoinDistrictInitiativeSection from "../components/sections/BitcoinDistrictInitiativeSection.astro";
 import BookClubSection from "../components/sections/BookClubSection.astro";
+
+const seo = {
+  title: "Bitcoin District",
+  description: "₿itcoin District is a community of Bitcoiners living and working in the DC, Maryland & Virginia (DMV) area. We come together to network, socialize and learn from one another, all united over our belief in the power of Bitcoin, freedom and sovereignty.",
+};
 ---
 
-<Layout>
+<Layout seo={seo}>
 	<main class="home">
 		<section class="hero">
 			<h1>Bitcoin District</h1>

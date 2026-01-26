@@ -1,22 +1,63 @@
 ---
-import { siteConfig } from "../config/site";
+import { siteConfig, type SEOConfig } from "../config/site";
 import NostrIcon from "../components/icons/Nostr.astro";
 import Footer from "../components/Footer.astro";
 import caporangeLogo from "../assets/images/caporange.png";
 import "../styles/theme.css";
 
-const { seo } = Astro.props;
+interface Props {
+  seo?: SEOConfig;
+}
+
+const { seo } = Astro.props as Props;
 
 const title = seo?.title ?? siteConfig.seo.defaultTitle;
 const description = seo?.description ?? siteConfig.seo.defaultDescription;
+const ogType = seo?.type ?? "website";
+const ogImage = seo?.image;
+const noindex = seo?.noindex ?? false;
+
+// Generate canonical URL
+const currentUrl = new URL(Astro.url.pathname, siteConfig.siteUrl);
+const canonical = seo?.canonical 
+  ? (seo.canonical.startsWith('http') ? seo.canonical : new URL(seo.canonical, siteConfig.siteUrl).href)
+  : currentUrl.href;
 
 // Use siteConfig directly (no CMS navigation/globals collections)
 const siteTitle = siteConfig.title;
+const siteUrl = siteConfig.siteUrl;
 const xUrl = siteConfig.socialLinks[0].href;
 const nostrUrl = siteConfig.socialLinks[1].href;
 const githubUrl = siteConfig.socialLinks[2].href;
 const mainNavItems = siteConfig.nav.main;
 const footerNavItems = siteConfig.nav.footer;
+
+// Generate structured data
+const structuredData = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": `${siteUrl}/#organization`,
+      "name": siteTitle,
+      "url": siteUrl,
+      "sameAs": [
+        xUrl,
+        nostrUrl,
+        githubUrl,
+      ].filter(Boolean),
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${siteUrl}/#website`,
+      "url": siteUrl,
+      "name": siteTitle,
+      "publisher": {
+        "@id": `${siteUrl}/#organization`,
+      },
+    },
+  ],
+};
 ---
 
 <!doctype html>
@@ -31,8 +72,33 @@ const footerNavItems = siteConfig.nav.footer;
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap"
     />
-    <meta name="description" content={description} />
+    
+    <!-- Primary Meta Tags -->
     <title>{title}</title>
+    <meta name="title" content={title} />
+    <meta name="description" content={description} />
+    {seo?.author && <meta name="author" content={seo.author} />}
+    <meta name="robots" content={noindex ? "noindex, nofollow" : "index, follow"} />
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href={canonical} />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content={ogType} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:site_name" content={siteTitle} />
+    {ogImage && <meta property="og:image" content={ogImage.startsWith('http') ? ogImage : new URL(ogImage, siteUrl).href} />}
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    {ogImage && <meta name="twitter:image" content={ogImage.startsWith('http') ? ogImage : new URL(ogImage, siteUrl).href} />}
+    
+    <!-- Structured Data -->
+    <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
   </head>
   <body>
     <nav>

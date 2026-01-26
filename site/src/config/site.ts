@@ -19,8 +19,19 @@ export type FooterLinks = {
   links: FooterLink[];
 };
 
+export type SEOConfig = {
+  title?: string;
+  description?: string;
+  image?: string;
+  canonical?: string;
+  noindex?: boolean;
+  type?: string;
+  author?: string;
+};
+
 export const siteConfig = {
   title: "Bitcoin District",
+  siteUrl: "https://bitcoindistrict.org",
   seo: {
     defaultTitle: "Bitcoin District",
     defaultDescription: "Building a vibrant Bitcoin community through education, events, and collaboration.",
