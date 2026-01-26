@@ -98,8 +98,9 @@ staging.bitcoindistrict.org {
     }
 
     # Directus assets - proxy to directus container
-    handle_path /assets* {
-        # Cache static assets
+    # FIX: Use 'handle' (NOT handle_path) so Directus receives the '/assets' prefix
+    handle /assets* {
+        # Standardize Cache for mobile performance
         header Cache-Control "public, max-age=31536000, immutable"
         
         reverse_proxy http://directus:8055 {
@@ -107,6 +108,9 @@ staging.bitcoindistrict.org {
             header_up X-Real-IP {remote_host}
             header_up X-Forwarded-For {remote_host}
             header_up X-Forwarded-Proto {scheme}
+            
+            # Ensure Range headers are respected for iOS audio/video
+            header_down +Accept-Ranges "bytes"
         }
     }
 
