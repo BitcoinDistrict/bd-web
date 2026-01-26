@@ -29,9 +29,9 @@ The production infrastructure consists of:
 
 ### URL Structure
 
-- Main site: `https://staging.bitcoindistrict.org`
+- Main site: `https://bitcoindistrict.org`
 - Admin panel: `https://cms.bitcoindistrict.org`
-- Assets: `https://staging.bitcoindistrict.org/assets/*`
+- Assets: `https://bitcoindistrict.org/assets/*`
 
 ### Server Layout
 
@@ -238,7 +238,7 @@ Add two A records for the main site and admin subdomain:
 Wait 1-5 minutes, then verify:
 
 ```bash
-dig staging.bitcoindistrict.org +short
+dig bitcoindistrict.org +short
 dig cms.bitcoindistrict.org +short
 ```
 
@@ -307,7 +307,7 @@ sudo systemctl status caddy
 
 ### Test URLs
 
-1. **Main site**: https://staging.bitcoindistrict.org
+1. **Main site**: https://bitcoindistrict.org
    - Should show the Bitcoin District homepage
    - Check browser console for errors
 
@@ -317,7 +317,7 @@ sudo systemctl status caddy
 
 3. **SSL Certificate**: Check for valid HTTPS
    ```bash
-   curl -vI https://staging.bitcoindistrict.org 2>&1 | grep -i "SSL certificate"
+   curl -vI https://bitcoindistrict.org 2>&1 | grep -i "SSL certificate"
    ```
 
 ### Generate Directus Tokens (First Time Only)
@@ -457,7 +457,7 @@ directus:
 
 1. **Check DNS**:
    ```bash
-   dig staging.bitcoindistrict.org +short
+   dig bitcoindistrict.org +short
    ```
    Should return server IP.
 

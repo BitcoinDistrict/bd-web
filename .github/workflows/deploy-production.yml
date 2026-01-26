@@ -414,7 +414,7 @@ jobs:
           # Check main site
           for i in $(seq 1 $MAX_RETRIES); do
             echo "Attempt $i/$MAX_RETRIES: Testing main site..."
-            if check_url "https://staging.bitcoindistrict.org/" "Main site"; then
+            if check_url "https://bitcoindistrict.org/" "Main site"; then
               break
             else
               if [ $i -eq $MAX_RETRIES ]; then
@@ -450,7 +450,7 @@ jobs:
         if: success()
         run: |
           echo "✅ Deployment completed successfully!"
-          echo "🌐 Main site: https://staging.bitcoindistrict.org"
+          echo "🌐 Main site: https://bitcoindistrict.org"
           echo "⚙️  Admin panel: https://cms.bitcoindistrict.org"
           echo "📝 Commit: ${{ github.sha }}"
           echo "👤 Deployed by: ${{ github.actor }}"

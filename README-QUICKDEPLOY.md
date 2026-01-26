@@ -87,13 +87,13 @@ Monitor at: `https://github.com/YOUR_USERNAME/bd-directus-astro/actions`
 ssh deploy@YOUR_SERVER_IP "cd ~/bd-directus-astro && docker compose -f docker-compose.prod.yml ps"
 
 # Test URLs (wait ~2 minutes for SSL)
-curl -I https://staging.bitcoindistrict.org
-curl -I https://staging.bitcoindistrict.org/admin
+curl -I https://bitcoindistrict.org
+curl -I https://cms.bitcoindistrict.org
 ```
 
 ### 7. Complete Directus Setup
 
-1. Visit https://staging.bitcoindistrict.org/admin
+1. Visit https://cms.bitcoindistrict.org
 2. Login with `DIRECTUS_ADMIN_EMAIL` and `DIRECTUS_ADMIN_PASSWORD`
 3. Go to Settings → Access Tokens
 4. Create two tokens:
@@ -145,5 +145,5 @@ Full documentation: [README-DEPLOYMENT.md](README-DEPLOYMENT.md)
 ---
 
 **Server**: YOUR_SERVER_IP  
-**Domain**: staging.bitcoindistrict.org  
-**Admin**: https://staging.bitcoindistrict.org/admin
+**Domain**: bitcoindistrict.org  
+**Admin**: https://cms.bitcoindistrict.org

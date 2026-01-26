@@ -1,6 +1,6 @@
 ---
 # Server configuration
-domain: staging.bitcoindistrict.org
+domain: bitcoindistrict.org
 server_hostname: bd-web
 timezone: UTC
 

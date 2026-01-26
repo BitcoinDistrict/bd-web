@@ -32,7 +32,7 @@ cms.bitcoindistrict.org {
     # Handle preflight OPTIONS requests separately
     @options method OPTIONS path /assets*
     handle @options {
-        header Access-Control-Allow-Origin "https://staging.bitcoindistrict.org"
+        header Access-Control-Allow-Origin "https://bitcoindistrict.org"
         header Access-Control-Allow-Methods "GET, HEAD, OPTIONS"
         header Access-Control-Allow-Headers "Range"
         header Access-Control-Expose-Headers "Content-Range, Content-Length, Accept-Ranges"
@@ -44,7 +44,7 @@ cms.bitcoindistrict.org {
     handle /assets* {
         reverse_proxy http://directus:8055 {
             # CORS response headers (header_down sets response headers)
-            header_down Access-Control-Allow-Origin "https://staging.bitcoindistrict.org"
+            header_down Access-Control-Allow-Origin "https://bitcoindistrict.org"
             header_down Access-Control-Allow-Methods "GET, HEAD, OPTIONS"
             header_down Access-Control-Allow-Headers "Range"
             header_down Access-Control-Expose-Headers "Content-Range, Content-Length, Accept-Ranges"
@@ -80,7 +80,7 @@ cms.bitcoindistrict.org {
     }
 }
 
-staging.bitcoindistrict.org {
+bitcoindistrict.org {
     # Automatic HTTPS via Let's Encrypt (email configured globally above)
     
     # Enable gzip compression
@@ -176,6 +176,6 @@ staging.bitcoindistrict.org {
 }
 
 # Redirect www to non-www (if needed in future)
-# www.staging.bitcoindistrict.org {
-#     redir https://staging.bitcoindistrict.org{uri} permanent
+# www.bitcoindistrict.org {
+#     redir https://bitcoindistrict.org{uri} permanent
 # }

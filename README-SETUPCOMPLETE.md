@@ -71,7 +71,7 @@ ansible/
 - Health checks
 - Error handling
 
-**Domain:** staging.bitcoindistrict.org
+**Domain:** bitcoindistrict.org
 
 ### 🚀 CI/CD Pipeline (GitHub Actions)
 
@@ -131,7 +131,7 @@ ansible/
 ```
 Internet (HTTPS)
     ↓
-Cloudflare DNS (staging.bitcoindistrict.org)
+Cloudflare DNS (bitcoindistrict.org)
     ↓
 Digital Ocean Droplet (YOUR_SERVER_IP)
     ↓
@@ -215,8 +215,8 @@ Watch at: https://github.com/YOUR_USERNAME/bd-directus-astro/actions
 
 ### 6. Access Your Site
 
-- Main: https://staging.bitcoindistrict.org
-- Admin: https://staging.bitcoindistrict.org/admin
+- Main: https://bitcoindistrict.org
+- Admin: https://cms.bitcoindistrict.org
 
 ### 7. Generate API Tokens
 
@@ -370,4 +370,4 @@ Your production infrastructure is ready to deploy the Bitcoin District website w
 **Created**: 2026-01-20  
 **Status**: Ready for deployment  
 **Server**: YOUR_SERVER_IP  
-**Domain**: staging.bitcoindistrict.org
+**Domain**: bitcoindistrict.org

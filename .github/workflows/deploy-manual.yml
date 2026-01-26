@@ -244,7 +244,7 @@ jobs:
           sleep 20
           
           echo "Testing main site..."
-          curl -f -k https://staging.bitcoindistrict.org/ || echo "Main site not responding yet"
+          curl -f -k https://bitcoindistrict.org/ || echo "Main site not responding yet"
           
           echo "Testing admin panel..."
           curl -f -k https://cms.bitcoindistrict.org || echo "Admin panel not responding yet"
@@ -260,7 +260,7 @@ jobs:
         run: |
           echo "✅ Manual deployment completed successfully!"
           echo "================================"
-          echo "🌐 Main site: https://staging.bitcoindistrict.org"
+          echo "🌐 Main site: https://bitcoindistrict.org"
           echo "⚙️  Admin panel: https://cms.bitcoindistrict.org"
           echo "📝 Branch: ${{ github.event.inputs.branch }}"
           echo "📝 Commit: ${{ github.sha }}"

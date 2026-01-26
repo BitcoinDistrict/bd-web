@@ -17,7 +17,7 @@ This document provides an overview of the Bitcoin District production infrastruc
 - **Provider**: Digital Ocean
 - **OS**: Ubuntu 24.04 LTS
 - **IP**: YOUR_SERVER_IP
-- **Domain**: staging.bitcoindistrict.org
+- **Domain**: bitcoindistrict.org
 - **Storage**: 5GB volume at `/mnt/data`
 
 ### Application Stack
@@ -35,7 +35,7 @@ Internet → Cloudflare DNS → Caddy (Reverse Proxy) → Docker Containers
 | Service | Purpose | Port | URL |
 |---------|---------|------|-----|
 | Caddy | Reverse proxy, SSL/TLS | 80, 443 | - |
-| Astro | Frontend application | 4321 | https://staging.bitcoindistrict.org |
+| Astro | Frontend application | 4321 | https://bitcoindistrict.org |
 | Directus | Headless CMS | 8055 | https://cms.bitcoindistrict.org |
 | PostgreSQL | Database | 5432 | Internal only |
 | Redis | Cache | 6379 | Internal only |
@@ -249,9 +249,9 @@ graph LR
 
 ### Public URLs
 
-- **Main Site**: https://staging.bitcoindistrict.org
+- **Main Site**: https://bitcoindistrict.org
 - **Admin Panel**: https://cms.bitcoindistrict.org
-- **Assets**: https://staging.bitcoindistrict.org/assets/*
+- **Assets**: https://bitcoindistrict.org/assets/*
 
 ### SSH Access
 
@@ -380,4 +380,4 @@ If needed:
 
 **Last Updated**: 2026-01-20  
 **Maintained By**: Bitcoin District Team  
-**Server**: staging.bitcoindistrict.org (YOUR_SERVER_IP)
+**Server**: bitcoindistrict.org (YOUR_SERVER_IP)

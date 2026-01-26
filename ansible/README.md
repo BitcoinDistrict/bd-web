@@ -195,7 +195,7 @@ Edit `group_vars/production.yml` to customize:
 
 ```yaml
 # Server configuration
-domain: staging.bitcoindistrict.org
+domain: bitcoindistrict.org
 server_hostname: bitcoindistrict-prod
 
 # Paths

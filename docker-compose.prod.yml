@@ -56,7 +56,7 @@ services:
       ADMIN_PASSWORD: ${DIRECTUS_ADMIN_PASSWORD}
       PUBLIC_URL: "https://cms.bitcoindistrict.org"
       CORS_ENABLED: "true"
-      CORS_ORIGIN: "https://staging.bitcoindistrict.org"
+      CORS_ORIGIN: "https://bitcoindistrict.org"
       CACHE_ENABLED: "true"
       CACHE_STORE: "redis"
       REDIS: "redis://cache:6379"
