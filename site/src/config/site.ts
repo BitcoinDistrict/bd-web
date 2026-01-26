@@ -32,7 +32,7 @@ export const siteConfig = {
         href: "/events",
         children: [
           { label: "DC BitPlebs", href: "/bitplebs" },
-          { label: "DC BitDevs", href: "https://dcbitdevs.com" },
+          //{ label: "DC BitDevs", href: "https://dcbitdevs.com" },
           { label: "Book Club", href: "/bookclub" },
         ]
       },
