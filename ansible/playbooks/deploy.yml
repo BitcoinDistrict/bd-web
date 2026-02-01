@@ -18,6 +18,14 @@
         group: "{{ app_group }}"
         mode: '0755'
 
+    - name: Ensure logs directory exists for cron job output
+      file:
+        path: "{{ app_dir }}/logs"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode: '0755'
+
     - name: Pull latest code from GitHub
       git:
         repo: "{{ git_repo }}"
