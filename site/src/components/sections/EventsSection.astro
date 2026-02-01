@@ -20,17 +20,38 @@ const bgClass = background === 'gray' ? 'bg-gray-50' : 'bg-white';
       </p>
     </div>
 
-    <a href="https://luma.com/bitcoindistrict" target="_blank" rel="noopener noreferrer" class="luma-calendar-card">
-      <img src={caporangeImage.src} alt="Bitcoin District Calendar" class="calendar-image" />
-      <div class="calendar-info">
-        <h3 class="calendar-title">View Full Calendar</h3>
-        <p class="calendar-description">Check out all our events on Luma</p>
-      </div>
-      <svg class="arrow-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M5 12h14M12 5l7 7-7 7"/>
-      </svg>
-    </a>
-    
+    <div class="calendar-actions">
+      <a href="https://luma.com/bitcoindistrict" target="_blank" rel="noopener noreferrer" class="luma-calendar-card">
+        <img src={caporangeImage.src} alt="Bitcoin District Calendar" class="calendar-image" />
+        <div class="calendar-info">
+          <h3 class="calendar-title">View Full Calendar</h3>
+          <p class="calendar-description">Check out all our events on Luma</p>
+        </div>
+        <svg class="arrow-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </a>
+      <a href="/events.ics" class="ics-calendar-card" aria-label="Subscribe to calendar (iCal)">
+        <span class="calendar-icon-wrap" aria-hidden="true">
+          <svg class="calendar-subscribe-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+            <line x1="12" y1="14" x2="12" y2="18"/>
+            <line x1="10" y1="16" x2="14" y2="16"/>
+          </svg>
+        </span>
+        <div class="calendar-info">
+          <h3 class="calendar-title">Subscribe to iCal</h3>
+          <p class="calendar-description">Bitcoin-only events across DC, MD & VA. Add this iCal feed to Apple Calendar, Google Calendar, or Outlook.</p>
+        </div>
+        <svg class="arrow-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </a>
+    </div>
+
     <EventsList />
   </div>
 </section>
@@ -74,12 +95,21 @@ const bgClass = background === 'gray' ? 'bg-gray-50' : 'bg-white';
     margin: 0;
   }
 
-  .luma-calendar-card {
+  .calendar-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 3rem;
+  }
+
+  .luma-calendar-card,
+  .ics-calendar-card {
+    flex: 1;
+    min-width: 280px;
     display: flex;
     align-items: center;
     gap: 1.5rem;
     padding: 1.5rem;
-    margin-bottom: 3rem;
     background: #ffffff;
     border: 2px solid #e5e7eb;
     border-radius: 12px;
@@ -87,10 +117,28 @@ const bgClass = background === 'gray' ? 'bg-gray-50' : 'bg-white';
     transition: all 0.3s ease;
   }
 
-  .luma-calendar-card:hover {
+  .luma-calendar-card:hover,
+  .ics-calendar-card:hover {
     border-color: #f7931a;
     box-shadow: 0 4px 12px rgba(247, 147, 26, 0.1);
     transform: translateY(-2px);
+  }
+
+  .calendar-icon-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+    flex-shrink: 0;
+    background: #f9fafb;
+    border-radius: 8px;
+    color: #f7931a;
+  }
+
+  .calendar-subscribe-icon {
+    width: 28px;
+    height: 28px;
   }
 
   .calendar-image {
@@ -124,7 +172,8 @@ const bgClass = background === 'gray' ? 'bg-gray-50' : 'bg-white';
     transition: transform 0.3s ease;
   }
 
-  .luma-calendar-card:hover .arrow-icon {
+  .luma-calendar-card:hover .arrow-icon,
+  .ics-calendar-card:hover .arrow-icon {
     transform: translateX(4px);
   }
 
@@ -145,10 +194,24 @@ const bgClass = background === 'gray' ? 'bg-gray-50' : 'bg-white';
       font-size: 1rem;
     }
 
-    .luma-calendar-card {
+    .calendar-actions {
+      margin-bottom: 2rem;
+    }
+
+    .luma-calendar-card,
+    .ics-calendar-card {
       gap: 1rem;
       padding: 1.25rem;
-      margin-bottom: 2rem;
+    }
+
+    .calendar-icon-wrap {
+      width: 60px;
+      height: 60px;
+    }
+
+    .calendar-subscribe-icon {
+      width: 24px;
+      height: 24px;
     }
 
     .calendar-image {

@@ -90,7 +90,24 @@ function getEventImageUrl(event: Event): string {
             <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
             <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2"></line>
           </svg>
-          Subscribe to our Luma Calendar
+          <span class="cta-text-desktop">Subscribe to our Luma Calendar</span>
+          <span class="cta-text-mobile">Luma</span>
+        </a>
+        <a 
+          href="/events.ics" 
+          class="ics-button"
+          aria-label="Subscribe to calendar (ICS)"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+            <line x1="12" y1="14" x2="12" y2="18"/>
+            <line x1="10" y1="16" x2="14" y2="16"/>
+          </svg>
+          <span class="cta-text-desktop">Subscribe to ICS Calendar</span>
+          <span class="cta-text-mobile">iCal</span>
         </a>
       </div>
     </div>
@@ -155,6 +172,10 @@ function getEventImageUrl(event: Event): string {
         })}
       </div>
     )}
+
+    <div class="see-more-wrap">
+      <a href="/events" class="see-more-link">See more events →</a>
+    </div>
   </div>
 </section>
 
@@ -374,23 +395,31 @@ function getEventImageUrl(event: Event): string {
   }
 
   .cta-section {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
     text-align: center;
     margin-top: 1.5rem;
     margin-bottom: 0;
   }
 
-  .luma-button {
+  .luma-button,
+  .ics-button {
     display: inline-flex;
     align-items: center;
     gap: 0.75rem;
     padding: 1rem 2rem;
-    background-color: #6B21A8;
-    color: white;
     font-weight: 700;
     font-size: 1.125rem;
     text-decoration: none;
     border-radius: 12px;
     transition: all 0.3s ease;
+  }
+
+  .luma-button {
+    background-color: #6B21A8;
+    color: white;
     border: 2px solid #6B21A8;
     box-shadow: 0 4px 16px rgba(107, 33, 168, 0.25);
   }
@@ -406,8 +435,47 @@ function getEventImageUrl(event: Event): string {
     transform: translateY(-1px);
   }
 
-  .luma-button svg {
+  .ics-button {
+    background-color: transparent;
+    color: #f7931a;
+    border: 2px solid #f7931a;
+  }
+
+  .ics-button:hover {
+    background-color: #f7931a;
+    color: white;
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(247, 147, 26, 0.3);
+  }
+
+  .ics-button:active {
+    transform: translateY(-1px);
+  }
+
+  .luma-button svg,
+  .ics-button svg {
     flex-shrink: 0;
+  }
+
+  .cta-text-mobile {
+    display: none;
+  }
+
+  .see-more-wrap {
+    margin-top: 2rem;
+    text-align: center;
+  }
+
+  .see-more-link {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #4b5563;
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+
+  .see-more-link:hover {
+    color: #f7931a;
   }
 
   @media (max-width: 768px) {
@@ -425,6 +493,20 @@ function getEventImageUrl(event: Event): string {
 
     .subtitle {
       display: none;
+    }
+
+    .cta-section {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+
+    .cta-text-desktop {
+      display: none;
+    }
+
+    .cta-text-mobile {
+      display: inline;
     }
 
     .events-grid {
@@ -458,9 +540,17 @@ function getEventImageUrl(event: Event): string {
       display: none;
     }
 
-    .luma-button {
-      font-size: 1rem;
-      padding: 0.875rem 1.5rem;
+    .luma-button,
+    .ics-button {
+      font-size: 0.875rem;
+      padding: 0.5rem 0.75rem;
+      gap: 0.5rem;
+    }
+
+    .luma-button svg,
+    .ics-button svg {
+      width: 16px;
+      height: 16px;
     }
   }
 </style>
