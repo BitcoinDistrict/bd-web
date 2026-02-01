@@ -2,7 +2,25 @@
 import Layout from "../layouts/Layout.astro";
 import PageHeader from "../components/PageHeader.astro";
 import MeetupsList from "../components/MeetupsList.astro";
-import { meetupsData } from "../data/meetups";
+import { getMeetups } from "../lib/directus";
+
+Astro.response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+Astro.response.headers.set("Pragma", "no-cache");
+
+const cmsEnabled = import.meta.env.PUBLIC_CMS_ENABLED === "true";
+let meetups: Awaited<ReturnType<typeof getMeetups>>["data"] = [];
+
+if (cmsEnabled) {
+  const result = await getMeetups();
+  if (result.error) {
+    console.error("[Meetups Page] Error fetching meetups:", result.error);
+  } else {
+    meetups = result.data ?? [];
+    console.log(`[Meetups Page] Loaded ${meetups.length} meetup(s)`);
+  }
+} else {
+  console.warn("[Meetups Page] CMS is disabled");
+}
 
 const seo = {
   title: "Meetups | Bitcoin District",
@@ -19,7 +37,7 @@ const seo = {
     />
 
     <section class="meetups-section" aria-labelledby="meetups-list-title">
-      <MeetupsList meetups={meetupsData} />
+      <MeetupsList meetups={meetups ?? []} />
     </section>
   </main>
 </Layout>

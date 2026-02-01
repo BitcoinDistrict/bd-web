@@ -1,43 +1,175 @@
 ---
-import type { Meetup } from "../data/meetups";
+import type { Meetup } from "../lib/directus";
+import { getDirectusUrl } from "../lib/directus";
+import NostrIcon from "./icons/Nostr.astro";
 
 export type Props = {
   meetups: Meetup[];
 };
 
+type FooterLinkItem = { href: string; ariaLabel: string; icon: string };
+
 const { meetups } = Astro.props;
+const directusUrl = getDirectusUrl();
+
+function getLogoUrl(logo: Meetup["logo"]): string | null {
+  if (!logo) return null;
+  if (typeof logo === "string") return `${directusUrl}/assets/${logo}`;
+  return `${directusUrl}/assets/${logo.id}`;
+}
+
+function getPlatformLabel(platform: string): string {
+  const labels: Record<string, string> = {
+    x: "X (Twitter)",
+    instagram: "Instagram",
+    nostr: "Nostr",
+    linkedin: "LinkedIn",
+    youtube: "YouTube",
+  };
+  return labels[platform] || platform;
+}
+
+function getFooterLinks(meetup: Meetup): FooterLinkItem[] {
+  const links: FooterLinkItem[] = [];
+  if (meetup.website) {
+    links.push({ href: meetup.website, ariaLabel: "Website", icon: "website" });
+  }
+  if (meetup.event_site_url) {
+    links.push({ href: meetup.event_site_url, ariaLabel: "Events", icon: "calendar" });
+  }
+  const social = Array.isArray(meetup.social_links) ? meetup.social_links : [];
+  for (const item of social) {
+    if (item?.url) {
+      links.push({
+        href: item.url,
+        ariaLabel: getPlatformLabel(item.platform),
+        icon: item.platform,
+      });
+    }
+  }
+  return links;
+}
 ---
 
 <div class="meetups">
-  <ul class="meetups__grid">
-    {meetups.map((meetup) => (
-      <li class="meetups__card">
-        <a class="meetups__link" href={meetup.meetupUrl} target="_blank" rel="noopener noreferrer">
-          <div class="meetups__header">
-            <div class="meetups__logoWrap">
-              <img
-                class="meetups__logo"
-                src={meetup.logo.src}
-                width={meetup.logo.width}
-                height={meetup.logo.height}
-                alt={`${meetup.title} logo`}
-                loading="lazy"
-              />
+  <ul class="meetups__grid" id="meetups-list-title">
+    {meetups.map((meetup) => {
+      const logoUrl = getLogoUrl(meetup.logo);
+      const footerLinks = getFooterLinks(meetup);
+      const logoContent = logoUrl ? (
+        <img
+          class="meetups__logo"
+          src={logoUrl}
+          alt={`${meetup.Name} logo`}
+          loading="lazy"
+          width={64}
+          height={64}
+        />
+      ) : (
+        <span class="meetups__logoPlaceholder">
+          {meetup.Name.charAt(0).toUpperCase()}
+        </span>
+      );
+      return (
+        <li class="meetups__card">
+          <div class="meetups__cardContent">
+            <div class="meetups__cardHeader">
+              <div class="meetups__cardLogoWrap" aria-hidden="true">
+                {meetup.event_site_url ? (
+                  <a
+                    href={meetup.event_site_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="meetups__logoLink"
+                    aria-label={`${meetup.Name} events`}
+                  >
+                    {logoContent}
+                  </a>
+                ) : (
+                  logoContent
+                )}
+              </div>
+              <div class="meetups__cardHeaderText">
+                <h2 class="meetups__cardTitle">{meetup.Name}</h2>
+                {meetup.city && (
+                  <p class="meetups__city">{meetup.city}</p>
+                )}
+              </div>
             </div>
-            <div class="meetups__titles">
-              <div class="meetups__title">{meetup.title}</div>
-              <div class="meetups__location">{meetup.location.name}</div>
+            <div class="meetups__cardBody">
+              {meetup.short_description && (
+                <div class="meetups__descriptionWrap">
+                  <p class="meetups__description">{meetup.short_description}</p>
+                  <button
+                    type="button"
+                    class="meetups__expandBtn"
+                    aria-label="Expand description"
+                    title="Show more"
+                  >
+                    <svg class="meetups__expandIcon meetups__expandIcon--expand" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M6 9l6 6 6-6" />
+                    </svg>
+                    <svg class="meetups__expandIcon meetups__expandIcon--collapse" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M18 15l-6-6-6 6" />
+                    </svg>
+                  </button>
+                </div>
+              )}
             </div>
+            {footerLinks.length > 0 && (
+              <div class="meetups__cardFooter">
+                {footerLinks.map((item) => (
+                  <a
+                    href={item.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="meetups__footerLink"
+                    aria-label={item.ariaLabel}
+                  >
+                    {item.icon === "website" && (
+                      <svg class="meetups__footerIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M2 12h20" />
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                      </svg>
+                    )}
+                    {item.icon === "calendar" && (
+                      <svg class="meetups__footerIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                        <path d="M16 2v4" />
+                        <path d="M8 2v4" />
+                        <path d="M3 10h18" />
+                      </svg>
+                    )}
+                    {item.icon === "x" && (
+                      <svg class="meetups__footerIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                      </svg>
+                    )}
+                    {item.icon === "instagram" && (
+                      <svg class="meetups__footerIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+                        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                        <path d="M17.5 6.5h.01" />
+                      </svg>
+                    )}
+                    {item.icon === "nostr" && (
+                      <NostrIcon class="meetups__footerIcon" width="18" height="18" />
+                    )}
+                    {(item.icon === "linkedin" || item.icon === "youtube" || !["website", "calendar", "x", "instagram", "nostr"].includes(item.icon)) && (
+                      <svg class="meetups__footerIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                      </svg>
+                    )}
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
-
-          <p class="meetups__description">{meetup.description}</p>
-
-          <div class="meetups__meta">
-            <span class="meetups__cta">View on Meetup →</span>
-          </div>
-        </a>
-      </li>
-    ))}
+        </li>
+      );
+    })}
   </ul>
 </div>
 
@@ -48,7 +180,6 @@ const { meetups } = Astro.props;
     margin: 0;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    grid-auto-rows: 1fr;
     gap: 1.25rem;
   }
 
@@ -66,47 +197,62 @@ const { meetups } = Astro.props;
 
   .meetups__card {
     display: flex;
-    min-height: 0;
-  }
-
-  .meetups__link {
-    display: flex;
     flex-direction: column;
-    width: 100%;
-    padding: 1rem;
+    min-height: 0;
     border-radius: 16px;
     background: #fff;
     border: 1px solid rgba(0, 0, 0, 0.08);
-    text-decoration: none;
-    color: inherit;
-    transition:
-      transform 180ms ease,
-      box-shadow 180ms ease,
-      border-color 180ms ease;
+    overflow: hidden;
+    transition: box-shadow 180ms ease, border-color 180ms ease;
   }
 
-  .meetups__link:hover {
-    transform: translateY(-2px);
+  .meetups__card:hover {
     box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
     border-color: rgba(0, 0, 0, 0.14);
   }
 
-  .meetups__header {
+  .meetups__cardContent {
     display: flex;
-    gap: 0.75rem;
-    align-items: center;
-    margin-bottom: 0.75rem;
+    flex-direction: column;
+    min-height: 0;
+    padding: 1rem;
   }
 
-  .meetups__logoWrap {
-    width: 52px;
-    height: 52px;
-    flex: 0 0 auto;
-    border-radius: 12px;
-    overflow: hidden;
-    background: #fff;
-    display: grid;
-    place-items: center;
+  .meetups__cardHeader {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-shrink: 0;
+    margin-bottom: 0.5rem;
+  }
+
+  .meetups__cardLogoWrap {
+    width: 64px;
+    height: 64px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .meetups__logoLink {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: background-color 150ms ease;
+  }
+
+  .meetups__logoLink:hover {
+    background-color: rgba(0, 0, 0, 0.06);
+  }
+
+  .meetups__logoLink:focus-visible {
+    outline: 2px solid #0e0535;
+    outline-offset: 2px;
   }
 
   .meetups__logo {
@@ -114,42 +260,158 @@ const { meetups } = Astro.props;
     max-height: 100%;
     width: auto;
     height: auto;
+    object-fit: contain;
     display: block;
   }
 
-  .meetups__title {
+  .meetups__logoPlaceholder {
+    font-weight: 700;
+    font-size: 2rem;
+    color: rgba(0, 0, 0, 0.5);
+    line-height: 1;
+  }
+
+  .meetups__cardHeaderText {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.15rem;
+  }
+
+  .meetups__cardTitle {
+    margin: 0;
     font-weight: 700;
     font-size: 1.05rem;
     line-height: 1.2;
+    color: inherit;
   }
 
-  .meetups__location {
-    margin-top: 0.15rem;
+  .meetups__city {
+    margin: 0;
+    font-size: 0.875rem;
     color: rgba(0, 0, 0, 0.6);
-    font-size: 0.92rem;
+    line-height: 1.4;
+  }
+
+  .meetups__cardBody {
+    flex: 1;
+    min-height: 0;
+    margin-bottom: 0.75rem;
+    overflow: visible;
+  }
+
+  .meetups__descriptionWrap {
+    position: relative;
+    min-height: 0;
   }
 
   .meetups__description {
-    margin: 0 0 0.85rem 0;
+    margin: 0.5rem 0 0 0;
+    font-size: 0.95rem;
     color: rgba(0, 0, 0, 0.78);
     line-height: 1.55;
-    font-size: 0.95rem;
-    flex: 1;
+    max-height: 4.5em;
+    overflow: hidden;
+    transition: max-height 0.25s ease;
   }
 
-  .meetups__meta {
+  .meetups__descriptionWrap.is-expanded .meetups__description {
+    max-height: 50em;
+  }
+
+  .meetups__descriptionWrap .meetups__expandBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 0.25rem;
+    padding: 0.2rem;
+    border: none;
+    background: none;
+    color: rgba(0, 0, 0, 0.45);
+    cursor: pointer;
+    border-radius: 4px;
+    transition: color 0.15s ease, background-color 0.15s ease;
+  }
+
+  .meetups__descriptionWrap .meetups__expandBtn:hover {
+    color: rgba(0, 0, 0, 0.7);
+    background-color: rgba(0, 0, 0, 0.06);
+  }
+
+  .meetups__descriptionWrap .meetups__expandBtn:focus-visible {
+    outline: 2px solid #0e0535;
+    outline-offset: 2px;
+  }
+
+  .meetups__descriptionWrap .meetups__expandBtn .meetups__expandIcon--collapse {
+    display: none;
+  }
+
+  .meetups__descriptionWrap.is-expanded .meetups__expandBtn .meetups__expandIcon--expand {
+    display: none;
+  }
+
+  .meetups__descriptionWrap.is-expanded .meetups__expandBtn .meetups__expandIcon--collapse {
+    display: block;
+  }
+
+  .meetups__expandIcon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .meetups__cardFooter {
     display: flex;
-    gap: 0.75rem;
-    justify-content: flex-end;
-    align-items: baseline;
     flex-wrap: wrap;
+    gap: 0.25rem;
+    align-items: center;
+    flex-shrink: 0;
     margin-top: auto;
   }
 
-  .meetups__cta {
-    font-weight: 600;
-    font-size: 0.92rem;
-    color: rgba(0, 0, 0, 0.9);
+  .meetups__footerLink {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    color: rgba(0, 0, 0, 0.65);
+    text-decoration: none;
+    border-radius: 8px;
+    transition: color 150ms ease, background-color 150ms ease;
+  }
+
+  .meetups__footerLink:hover {
+    color: #0e0535;
+    background-color: rgba(0, 0, 0, 0.06);
+  }
+
+  .meetups__footerLink:focus-visible {
+    outline: 2px solid #0e0535;
+    outline-offset: 2px;
+  }
+
+  .meetups__footerIcon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
   }
 </style>
 
+<script>
+  document.querySelectorAll('.meetups').forEach((container) => {
+    container.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement | null;
+      const btn = target?.closest?.('.meetups__expandBtn');
+      if (!btn) return;
+      const wrap = btn.closest('.meetups__descriptionWrap');
+      if (!wrap) return;
+      const isExpanded = wrap.classList.toggle('is-expanded');
+      btn.setAttribute('aria-label', isExpanded ? 'Collapse description' : 'Expand description');
+      btn.setAttribute('title', isExpanded ? 'Show less' : 'Show more');
+    });
+  });
+</script>

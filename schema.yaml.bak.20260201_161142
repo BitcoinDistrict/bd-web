@@ -2231,7 +2231,7 @@ fields:
       readonly: false
       required: false
       searchable: true
-      sort: 12
+      sort: 11
       special: null
       translations: null
       validation: null
@@ -2271,7 +2271,7 @@ fields:
       readonly: false
       required: false
       searchable: true
-      sort: 13
+      sort: 12
       special: null
       translations: null
       validation: null
@@ -2312,7 +2312,7 @@ fields:
       readonly: false
       required: false
       searchable: true
-      sort: 14
+      sort: 13
       special: null
       translations: null
       validation: null
@@ -2353,7 +2353,7 @@ fields:
       readonly: false
       required: false
       searchable: true
-      sort: 15
+      sort: 14
       special:
         - file
       translations: null
@@ -2395,7 +2395,7 @@ fields:
       readonly: false
       required: false
       searchable: true
-      sort: 16
+      sort: 15
       special:
         - cast-json
       translations: null
@@ -2454,46 +2454,6 @@ fields:
       data_type: text
       default_value: null
       max_length: null
-      numeric_precision: null
-      numeric_scale: null
-      is_nullable: true
-      is_unique: false
-      is_indexed: false
-      is_primary_key: false
-      is_generated: false
-      generation_expression: null
-      has_auto_increment: false
-      foreign_key_table: null
-      foreign_key_column: null
-  - collection: Meetups
-    field: city
-    type: string
-    meta:
-      collection: Meetups
-      conditions: null
-      display: null
-      display_options: null
-      field: city
-      group: null
-      hidden: false
-      interface: input
-      note: null
-      options: null
-      readonly: false
-      required: false
-      searchable: true
-      sort: 11
-      special: null
-      translations: null
-      validation: null
-      validation_message: null
-      width: full
-    schema:
-      name: city
-      table: Meetups
-      data_type: character varying
-      default_value: null
-      max_length: 255
       numeric_precision: null
       numeric_scale: null
       is_nullable: true

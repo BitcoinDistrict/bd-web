@@ -930,3 +930,104 @@ export async function getPageData(slug: string): Promise<CmsResult<any>> {
       };
     }
   }
+
+  /**
+   * Meetup interface matching the Meetups collection in Directus
+   */
+  export interface Meetup {
+    id: number;
+    status?: string;
+    sort?: number | null;
+    Name: string;
+    description?: string | null;
+    short_description?: string | null;
+    address?: string | null;
+    city?: string | null;
+    website?: string | null;
+    event_site_url?: string | null;
+    logo?: string | {
+      id: string;
+      filename_disk?: string;
+      width?: number;
+      height?: number;
+    } | null;
+    social_links?: { platform: string; url: string }[] | null;
+  }
+
+  /**
+   * Fetches all published meetups from the Meetups collection
+   */
+  export async function getMeetups(): Promise<CmsResult<Meetup[]>> {
+    const client = getDirectusClient();
+    if (!client) {
+      console.error("[Meetups] Directus client not configured");
+      return { data: null, error: "CMS_NOT_CONFIGURED" };
+    }
+
+    try {
+      const meetups = await withTimeout(
+        client.request(
+          readItems("Meetups", {
+            fields: [
+              "id",
+              "Name",
+              "short_description",
+              "address",
+              "city",
+              "website",
+              "event_site_url",
+              "logo.*",
+              "social_links"
+            ],
+            filter: {
+              status: {
+                _eq: "published",
+              },
+            },
+            sort: ["sort", "Name"],
+          })
+        ),
+        2500
+      );
+
+      console.log(`[Meetups] Fetched ${meetups.length} published meetup(s)`);
+
+      return {
+        data: meetups as Meetup[],
+        error: null,
+      };
+    } catch (error: any) {
+      let errorMessage = "Unknown error";
+      let statusCode: number | null = null;
+
+      if (error?.response) {
+        statusCode = error.response.status;
+        const errorBody = error.response._data || error.response.data;
+        if (errorBody?.errors?.[0]?.message) {
+          errorMessage = errorBody.errors[0].message;
+        } else if (errorBody?.message) {
+          errorMessage = errorBody.message;
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      } else {
+        errorMessage = String(error);
+      }
+
+      console.error("[Meetups] Failed to fetch meetups:", errorMessage);
+      if (statusCode) {
+        console.error(`[Meetups] HTTP Status: ${statusCode}`);
+      }
+
+      if (statusCode === 403 || errorMessage.includes("permission") || errorMessage.includes("Forbidden")) {
+        console.error("[Meetups] ❌ Permission denied - Service user role needs Read access to 'Meetups' collection");
+        console.error("[Meetups] Fix: Settings → Users & Roles → Roles → [Your Role] → Permissions → Meetups → Enable Read");
+        return { data: null, error: "CMS_UNAVAILABLE" };
+      }
+
+      return {
+        data: null,
+        error: isProbablyNetworkError(error) ? "CMS_UNAVAILABLE" : "UNKNOWN",
+      };
+    }
+  }
