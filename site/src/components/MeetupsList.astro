@@ -312,7 +312,7 @@ function getFooterLinks(meetup: Meetup): FooterLinkItem[] {
     font-size: 0.95rem;
     color: rgba(0, 0, 0, 0.78);
     line-height: 1.55;
-    max-height: 4.5em;
+    max-height: 4.65em;
     overflow: hidden;
     transition: max-height 0.25s ease;
   }
@@ -322,7 +322,15 @@ function getFooterLinks(meetup: Meetup): FooterLinkItem[] {
   }
 
   .meetups__descriptionWrap .meetups__expandBtn {
+    display: none;
+  }
+
+  .meetups__descriptionWrap.has-overflow .meetups__expandBtn {
     display: inline-flex;
+  }
+
+  .meetups__descriptionWrap.has-overflow .meetups__expandBtn,
+  .meetups__descriptionWrap.is-expanded .meetups__expandBtn {
     align-items: center;
     justify-content: center;
     margin-top: 0.25rem;
@@ -399,10 +407,48 @@ function getFooterLinks(meetup: Meetup): FooterLinkItem[] {
     height: 18px;
     flex-shrink: 0;
   }
+
+  @media (max-width: 640px) {
+    .meetups__cardBody {
+      display: none;
+    }
+
+    .meetups__cardHeader {
+      margin-bottom: 0;
+    }
+
+    .meetups__cardFooter {
+      gap: 0.2rem;
+      margin-top: 0.5rem;
+    }
+
+    .meetups__footerLink {
+      width: 36px;
+      height: 36px;
+    }
+
+    .meetups__footerIcon {
+      width: 16px;
+      height: 16px;
+    }
+  }
 </style>
 
 <script>
+  function checkDescriptionOverflow(wrap: Element): void {
+    const p = wrap.querySelector('.meetups__description');
+    if (!p) return;
+    const overflows = (p as HTMLElement).scrollHeight > (p as HTMLElement).clientHeight;
+    wrap.classList.toggle('has-overflow', overflows);
+  }
+
   document.querySelectorAll('.meetups').forEach((container) => {
+    container.querySelectorAll('.meetups__descriptionWrap').forEach((wrap) => {
+      checkDescriptionOverflow(wrap);
+      const ro = new ResizeObserver(() => checkDescriptionOverflow(wrap));
+      ro.observe(wrap);
+    });
+
     container.addEventListener('click', (e) => {
       const target = e.target as HTMLElement | null;
       const btn = target?.closest?.('.meetups__expandBtn');
