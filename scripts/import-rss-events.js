@@ -91,13 +91,22 @@ function log(message, color = colors.reset) {
 }
 
 /**
- * Scrape the event page to get the Website (RSVP) link
+ * Scrape the event page sidebar to get authoritative event metadata.
+ * The sidebar (div.event_assets) contains the correct date/time/location/website
+ * data, which is more reliable than the blockquote in the RSS body content.
+ *
+ * Returns an object with: startDateTime, endDateTime, venueName, venueAddress,
+ * rsvpUrl, timezone — or null if scraping fails.
  */
-async function scrapeEventRsvpLink(eventUrl) {
+async function scrapeEventPage(eventUrl) {
   try {
-    log(`  → Scraping event page for RSVP link...`, colors.cyan);
+    log(`  → Scraping event page for sidebar metadata...`, colors.cyan);
     
-    const response = await fetch(eventUrl);
+    const response = await fetch(eventUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
+    });
     if (!response.ok) {
       throw new Error(`Failed to fetch: ${response.statusText}`);
     }
@@ -105,16 +114,77 @@ async function scrapeEventRsvpLink(eventUrl) {
     const html = await response.text();
     const $ = cheerio.load(html);
     
-    // Look for the Website field with class "single_event_website"
-    const websiteLink = $('.single_event_website a').attr('href');
+    const result = {
+      startDateTime: null,
+      endDateTime: null,
+      venueName: null,
+      venueAddress: null,
+      rsvpUrl: null,
+      timezone: null
+    };
     
-    if (websiteLink) {
-      log(`  ✓ Found RSVP link from event page: ${websiteLink}`, colors.green);
-      return websiteLink;
+    // --- 1. Extract UTC timestamps from data attributes (most reliable source) ---
+    const eventAssets = $('div.event_assets');
+    const startUtc = eventAssets.attr('data-time_start_utc');
+    const endUtc = eventAssets.attr('data-time_end_utc');
+    
+    if (startUtc) {
+      const startDateTimeNY = dayjs.unix(parseInt(startUtc, 10)).tz('America/New_York');
+      if (startDateTimeNY.isValid()) {
+        result.startDateTime = startDateTimeNY.format('YYYY-MM-DDTHH:mm:ss');
+        log(`  ✓ Start time from UTC timestamp: ${result.startDateTime} (ET)`, colors.green);
+      }
     }
     
-    log(`  ⚠ No Website field found on event page`, colors.yellow);
-    return null;
+    if (endUtc) {
+      const endDateTimeNY = dayjs.unix(parseInt(endUtc, 10)).tz('America/New_York');
+      if (endDateTimeNY.isValid()) {
+        result.endDateTime = endDateTimeNY.format('YYYY-MM-DDTHH:mm:ss');
+        log(`  ✓ End time from UTC timestamp: ${result.endDateTime} (ET)`, colors.green);
+      }
+    }
+    
+    // --- 2. Extract timezone info from local time field ---
+    const localTimeSpans = $('.single_event_local_time span');
+    if (localTimeSpans.length > 0) {
+      const timezoneText = localTimeSpans.eq(0).text().trim();
+      if (timezoneText) {
+        result.timezone = timezoneText;
+        log(`  ✓ Timezone: ${timezoneText}`, colors.green);
+      }
+    }
+    
+    // --- 3. Extract location ---
+    const locationText = $('.single_event_location span').first().text().trim();
+    if (locationText) {
+      // Format: "Venue Name, Street Address, City, State"
+      const commaIndex = locationText.indexOf(',');
+      if (commaIndex > -1) {
+        result.venueName = locationText.substring(0, commaIndex).trim();
+        result.venueAddress = locationText.substring(commaIndex + 1).trim();
+      } else {
+        result.venueName = locationText;
+      }
+      log(`  ✓ Venue: ${result.venueName}`, colors.green);
+      if (result.venueAddress) {
+        log(`  ✓ Address: ${result.venueAddress}`, colors.green);
+      }
+    }
+    
+    // --- 4. Extract Website/RSVP link ---
+    const websiteLink = $('.single_event_website a').attr('href');
+    if (websiteLink) {
+      result.rsvpUrl = websiteLink;
+      log(`  ✓ RSVP link: ${websiteLink}`, colors.green);
+    }
+    
+    // Validate that we got at least the start time (minimum required data)
+    if (!result.startDateTime) {
+      log(`  ⚠ Could not extract start time from sidebar`, colors.yellow);
+      return null;
+    }
+    
+    return result;
   } catch (error) {
     log(`  ⚠ Failed to scrape event page: ${error.message}`, colors.yellow);
     return null;
@@ -527,20 +597,39 @@ async function processRSSItem(item, feedSource, feedName) {
   log(`\n${colors.bright}${colors.blue}Processing: ${title}${colors.reset}`);
   log(`  URL: ${externalUrl}`, colors.cyan);
   
-  // Parse the HTML content
+  // Parse the HTML content from RSS for image, description, and fallback RSVP URLs
   const parsed = parseEventDetails(item.contentEncoded);
   
   if (!parsed) {
-    log(`  ✗ Failed to parse event details`, colors.red);
+    log(`  ✗ Failed to parse event details from RSS content`, colors.red);
     return { status: 'failed', reason: 'parse_error' };
   }
   
-  // Scrape the event page for the Website (RSVP) link
-  // This is more reliable than parsing from RSS content
-  const scrapedRsvpUrl = await scrapeEventRsvpLink(externalUrl);
+  // Scrape the event page sidebar for authoritative date/time/location/website data.
+  // The sidebar is always correct, whereas the blockquote in the RSS body can have
+  // wrong dates/times added by the bitcoinonly.events site owner.
+  const scraped = await scrapeEventPage(externalUrl);
   
-  // Use scraped URL if available, otherwise fall back to parsed URL from content
-  const rsvpUrl = scrapedRsvpUrl || parsed.rsvpUrl;
+  // Determine date/time: prefer scraped sidebar (UTC timestamps), fall back to blockquote parsing
+  let startDateTime, endDateTime;
+  
+  if (scraped && scraped.startDateTime) {
+    startDateTime = scraped.startDateTime;
+    endDateTime = scraped.endDateTime;
+    log(`  ✓ Using date/time from scraped sidebar`, colors.green);
+  } else {
+    log(`  ⚠ Sidebar scrape failed, falling back to blockquote parsing...`, colors.yellow);
+    const parsedDates = parseDateTime(parsed.dateStr, parsed.timeStr);
+    startDateTime = parsedDates.startDateTime;
+    endDateTime = parsedDates.endDateTime;
+  }
+  
+  // Determine venue: prefer scraped sidebar, fall back to blockquote parsing
+  const venueName = (scraped && scraped.venueName) || parsed.venueName;
+  const venueAddress = (scraped && scraped.venueAddress) || parsed.venueAddress;
+  
+  // Determine RSVP URL: prefer scraped sidebar, fall back to RSS content parsing
+  const rsvpUrl = (scraped && scraped.rsvpUrl) || parsed.rsvpUrl;
   
   if (rsvpUrl) {
     log(`  → Final RSVP URL: ${rsvpUrl}`, colors.cyan);
@@ -548,11 +637,8 @@ async function processRSSItem(item, feedSource, feedName) {
     log(`  ⚠ No RSVP URL found`, colors.yellow);
   }
   
-  // Parse date and time
-  const { startDateTime, endDateTime } = parseDateTime(parsed.dateStr, parsed.timeStr);
-  
   if (!startDateTime) {
-    log(`  ✗ Failed to parse event date/time`, colors.red);
+    log(`  ✗ Failed to parse event date/time from any source`, colors.red);
     return { status: 'failed', reason: 'date_parse_error' };
   }
   
@@ -640,8 +726,8 @@ async function processRSSItem(item, feedSource, feedName) {
   
   // Find or create venue
   let venueId = null;
-  if (parsed.venueName) {
-    venueId = await findOrCreateVenue(parsed.venueName, parsed.venueAddress);
+  if (venueName) {
+    venueId = await findOrCreateVenue(venueName, venueAddress);
   }
   
   // Check if title includes "bitplebs" (case insensitive) and add tag
@@ -671,8 +757,8 @@ async function processRSSItem(item, feedSource, feedName) {
       source_feed: feedSource,
       is_imported: true,
       raw_description: item.contentEncoded,
-      parsed_venue_name: parsed.venueName,
-      parsed_venue_address: parsed.venueAddress,
+      parsed_venue_name: venueName,
+      parsed_venue_address: venueAddress,
       tags: tagId,
       status: 'published'
     };
