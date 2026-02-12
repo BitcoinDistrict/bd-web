@@ -1,7 +1,9 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import PageHeader from "../../components/PageHeader.astro";
+import PodcastBar from "../../components/PodcastBar.astro";
 import PodcastList from "../../components/PodcastList.astro";
+import SpotifyIcon from "../../components/icons/Spotify.astro";
 import { getPodcastEpisodes, type PodcastEpisode } from "../../lib/directus";
 
 // Prevent caching to ensure fresh data from Directus
@@ -30,11 +32,27 @@ const seo = {
   description:
     "Listen to Bitcoin District podcast episodes featuring discussions about Bitcoin, freedom tech, and the DMV Bitcoin community.",
 };
+
+const platforms = [
+  {
+    name: "Spotify",
+    url: "https://open.spotify.com/show/22ra3TPnu1fh5iW228EYXp",
+    icon: SpotifyIcon,
+    ariaLabel: "Listen on Spotify",
+    brandColor: "#1DB954",
+  },
+];
 ---
 
 <Layout seo={seo}>
   <main class="podcast-page">
     <PageHeader title="Bitcoin District Podcast" />
+
+    <p class="podcast-invitation">
+      <a href="/contact">Let us know</a> if you'd like to come on the pod!
+    </p>
+
+    <PodcastBar platforms={platforms} />
 
     {error ? (
       <section class="podcast-error" aria-live="polite">
@@ -59,8 +77,23 @@ const seo = {
     padding: 3rem 2rem;
   }
 
+  .podcast-invitation {
+    text-align: center;
+    margin: 1.5rem 0;
+    color: rgba(0, 0, 0, 0.7);
+  }
+
+  .podcast-invitation a {
+    color: inherit;
+    text-decoration: underline;
+  }
+
+  .podcast-invitation a:hover {
+    opacity: 0.8;
+  }
+
   .podcast-section {
-    margin-top: 2.75rem;
+    margin-top: 0;
   }
 
   .podcast-error {

@@ -1,0 +1,121 @@
+---
+export interface Platform {
+  name: string;
+  url: string;
+  icon: any; // Astro component
+  ariaLabel: string;
+  brandColor?: string;
+}
+
+export interface Props {
+  platforms: Platform[];
+}
+
+const { platforms } = Astro.props as Props;
+---
+
+{platforms.length > 0 && (
+  <div class="podcast-platforms">
+    <div class="podcast-platforms__buttons">
+      {platforms.map((platform) => {
+        const IconComponent = platform.icon;
+        return (
+          <a
+            href={platform.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="podcast-platforms__button"
+            aria-label={platform.ariaLabel}
+            style={platform.brandColor ? `--brand-color: ${platform.brandColor}` : undefined}
+          >
+            <IconComponent class="podcast-platforms__icon" width="24" height="24" />
+          </a>
+        );
+      })}
+    </div>
+  </div>
+)}
+
+<style>
+  .podcast-platforms {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .podcast-platforms__heading {
+    font-size: 1rem;
+    font-weight: 600;
+    color: rgba(0, 0, 0, 0.7);
+    margin: 0;
+    text-align: center;
+  }
+
+  .podcast-platforms__buttons {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .podcast-platforms__button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    background: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    text-decoration: none;
+    color: inherit;
+    transition:
+      transform 180ms ease,
+      box-shadow 180ms ease,
+      border-color 180ms ease;
+    cursor: pointer;
+  }
+
+  .podcast-platforms__button:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    border-color: rgba(0, 0, 0, 0.18);
+  }
+
+  .podcast-platforms__button:hover .podcast-platforms__icon {
+    color: var(--brand-color, #1DB954);
+  }
+
+  .podcast-platforms__icon {
+    color: rgba(0, 0, 0, 0.7);
+    transition: color 150ms ease;
+  }
+
+  .podcast-platforms__button:focus {
+    outline: 2px solid var(--brand-color, #1DB954);
+    outline-offset: 2px;
+  }
+
+  @media (max-width: 640px) {
+    .podcast-platforms {
+      margin-bottom: 1.5rem;
+    }
+
+    .podcast-platforms__heading {
+      display: none;
+    }
+
+    .podcast-platforms__button {
+      width: 44px;
+      height: 44px;
+    }
+
+    .podcast-platforms__icon {
+      width: 20px;
+      height: 20px;
+    }
+  }
+</style>

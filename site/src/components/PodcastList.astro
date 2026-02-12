@@ -57,44 +57,46 @@ const getAudioUrl = (episode: PodcastEpisode) => {
         const latestEpisodeUrl = `/podcast/${latestSlug}`;
         return (
           <article class="featured-episode">
-            <div class="featured-episode__layout">
-              {getCoverImageUrl(latestEpisode) && (
-                <a href={latestEpisodeUrl} class="featured-episode__image-link">
-                  <div class="featured-episode__image">
-                    <img
-                      src={getCoverImageUrl(latestEpisode)}
-                      alt={typeof latestEpisode.cover_image === 'object' && latestEpisode.cover_image?.title 
-                        ? latestEpisode.cover_image.title 
-                        : latestEpisode.title}
-                    />
-                  </div>
-                </a>
-              )}
-              <div class="featured-episode__content">
-                <h2 class="featured-episode__title">
-                  <a href={latestEpisodeUrl}>{latestEpisode.title}</a>
-                </h2>
-                {latestEpisode.air_date && (
-                  <time class="featured-episode__date" datetime={latestEpisode.air_date}>
-                    {new Date(latestEpisode.air_date).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                  </time>
+            <div class="featured-episode__header">
+              <div class="featured-episode__layout">
+                {getCoverImageUrl(latestEpisode) && (
+                  <a href={latestEpisodeUrl} class="featured-episode__image-link">
+                    <div class="featured-episode__image">
+                      <img
+                        src={getCoverImageUrl(latestEpisode)}
+                        alt={typeof latestEpisode.cover_image === 'object' && latestEpisode.cover_image?.title 
+                          ? latestEpisode.cover_image.title 
+                          : latestEpisode.title}
+                      />
+                    </div>
+                  </a>
                 )}
-                {latestEpisode.description && (
-                  <div 
-                    class="featured-episode__description" 
-                    set:html={latestEpisode.description}
-                  ></div>
-                )}
+                <div class="featured-episode__content">
+                  <h2 class="featured-episode__title">
+                    <a href={latestEpisodeUrl}>{latestEpisode.title}</a>
+                  </h2>
+                  {latestEpisode.air_date && (
+                    <time class="featured-episode__date" datetime={latestEpisode.air_date}>
+                      {new Date(latestEpisode.air_date).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                    </time>
+                  )}
+                </div>
               </div>
             </div>
             {getAudioUrl(latestEpisode) && (
               <div class="featured-episode__player">
                 <PodcastPlayer audioUrl={getAudioUrl(latestEpisode)!} title={latestEpisode.title} />
               </div>
+            )}
+            {latestEpisode.description && (
+              <div 
+                class="featured-episode__description" 
+                set:html={latestEpisode.description}
+              ></div>
             )}
           </article>
         );
@@ -179,11 +181,14 @@ const getAudioUrl = (episode: PodcastEpisode) => {
     margin-bottom: 3rem;
   }
 
+  .featured-episode__header {
+    margin-bottom: 1.5rem;
+  }
+
   .featured-episode__layout {
     display: grid;
     grid-template-columns: 280px 1fr;
     gap: 2rem;
-    margin-bottom: 1.5rem;
   }
 
   .featured-episode__image-link {
@@ -248,13 +253,15 @@ const getAudioUrl = (episode: PodcastEpisode) => {
   .featured-episode__date {
     font-size: 0.95rem;
     color: rgba(0, 0, 0, 0.6);
-    margin-bottom: 1rem;
+    margin-bottom: 0;
   }
 
   .featured-episode__description {
     font-size: 1rem;
     line-height: 1.65;
     color: rgba(0, 0, 0, 0.75);
+    margin-top: 1.5rem;
+    order: 3;
   }
 
   .featured-episode__description :global(p) {
@@ -267,6 +274,7 @@ const getAudioUrl = (episode: PodcastEpisode) => {
 
   .featured-episode__player {
     margin-top: 1.5rem;
+    order: 2;
   }
 
   /* Older Episodes */
@@ -471,6 +479,94 @@ const getAudioUrl = (episode: PodcastEpisode) => {
     }
   }
 
+  @media (max-width: 640px) {
+    /* Latest Episode Mobile Layout: header → player → description */
+    .featured-episode {
+      display: flex;
+      flex-direction: column;
+      padding: 1.25rem;
+    }
+
+    .featured-episode__header {
+      order: 1;
+      margin-bottom: 1.25rem;
+    }
+
+    .featured-episode__layout {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
+    .featured-episode__image-link {
+      width: 100%;
+      max-width: 200px;
+      margin: 0 auto;
+    }
+
+    .featured-episode__content {
+      text-align: center;
+    }
+
+    .featured-episode__title {
+      font-size: 1.35rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .featured-episode__date {
+      margin-bottom: 0;
+    }
+
+    .featured-episode__player {
+      order: 2;
+      margin-top: 0;
+      margin-bottom: 1.25rem;
+    }
+
+    .featured-episode__description {
+      order: 3;
+      margin-top: 0;
+    }
+
+    /* Previous Episodes Mobile Layout: compact (cover, title, date only) */
+    .episode-item__description {
+      display: none;
+    }
+
+    .episode-item__arrow {
+      display: none;
+    }
+
+    .episode-item__link {
+      flex-direction: row;
+      align-items: flex-start;
+      padding: 1rem;
+      gap: 1rem;
+    }
+
+    .episode-item__image {
+      width: 80px;
+      height: 80px;
+      flex-shrink: 0;
+    }
+
+    .episode-item__content {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .episode-item__title {
+      font-size: 1.1rem;
+      margin-bottom: 0;
+    }
+
+    .episode-item__date {
+      font-size: 0.85rem;
+    }
+  }
+
   @media (max-width: 480px) {
     .featured-episode {
       padding: 1.25rem;
@@ -485,26 +581,24 @@ const getAudioUrl = (episode: PodcastEpisode) => {
     }
 
     .episode-item__link {
-      flex-direction: column;
+      flex-direction: row;
       align-items: flex-start;
       gap: 1rem;
       padding: 1rem;
     }
 
     .episode-item__image {
-      width: 100%;
-      height: auto;
-      aspect-ratio: 1;
-      max-width: none;
+      width: 70px;
+      height: 70px;
+      flex-shrink: 0;
     }
 
     .episode-item__title {
-      font-size: 1.15rem;
+      font-size: 1.05rem;
     }
 
-    .episode-item__arrow {
-      align-self: flex-end;
-      margin-left: 0;
+    .episode-item__date {
+      font-size: 0.8rem;
     }
   }
 </style>
