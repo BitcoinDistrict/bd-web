@@ -112,6 +112,9 @@ async function scrapeEventPage(eventUrl) {
     }
     
     const html = await response.text();
+    if (typeof html !== 'string') {
+      throw new Error('Response body is not a string');
+    }
     const $ = cheerio.load(html);
     
     const result = {
@@ -195,22 +198,29 @@ async function scrapeEventPage(eventUrl) {
  * Parse event details from HTML content
  */
 function parseEventDetails(htmlContent) {
-  const $ = cheerio.load(htmlContent);
-  
+  if (htmlContent == null || typeof htmlContent !== 'string') {
+    return null;
+  }
+  const trimmed = htmlContent.trim();
+  if (trimmed === '') {
+    return null;
+  }
+  const $ = cheerio.load(trimmed);
+
   // Extract the blockquote content which contains date, time, and venue
   const blockquote = $('blockquote').first();
   const blockquoteHtml = blockquote.html();
   const blockquoteText = blockquote.text();
-  
+
   if (!blockquoteText) {
     log('  ⚠ No blockquote found in content', colors.yellow);
     return null;
   }
-  
+
   // Split blockquote by <br> tags to get individual lines
   const lines = blockquoteHtml ? blockquoteHtml.split(/<br\s*\/?>/i).map(line => {
-    // Remove HTML tags and trim
-    return cheerio.load(line).text().trim();
+    // Remove HTML tags and trim; ensure line is a string for cheerio.load()
+    return line != null ? cheerio.load(String(line)).text().trim() : '';
   }) : blockquoteText.split('\n').map(l => l.trim());
   
   let dateStr = null;
@@ -597,18 +607,39 @@ async function processRSSItem(item, feedSource, feedName) {
   log(`\n${colors.bright}${colors.blue}Processing: ${title}${colors.reset}`);
   log(`  URL: ${externalUrl}`, colors.cyan);
   
-  // Parse the HTML content from RSS for image, description, and fallback RSVP URLs
-  const parsed = parseEventDetails(item.contentEncoded);
-  
+  // Use content:encoded first, then content/description; never pass undefined to parseEventDetails
+  const htmlContent = item.contentEncoded ?? item.content ?? item.description ?? '';
+  let parsed = parseEventDetails(htmlContent);
+  let scraped = null;
+
+  // When RSS has no parseable body (e.g. feed only has <description>), still try scraping the event page.
+  // If scrape yields startDateTime, build a minimal parsed object and continue.
   if (!parsed) {
-    log(`  ✗ Failed to parse event details from RSS content`, colors.red);
-    return { status: 'failed', reason: 'parse_error' };
+    log(`  ⚠ No parseable RSS body, scraping event page for metadata...`, colors.yellow);
+    scraped = await scrapeEventPage(externalUrl);
+    if (scraped && scraped.startDateTime) {
+      parsed = {
+        dateStr: null,
+        timeStr: null,
+        venueName: scraped.venueName ?? null,
+        venueAddress: scraped.venueAddress ?? null,
+        imageUrl: null,
+        description: item.contentSnippet || item.description || '',
+        rsvpUrl: scraped.rsvpUrl ?? null
+      };
+      log(`  ✓ Using metadata from scraped event page`, colors.green);
+    } else {
+      log(`  ✗ Failed to parse event details and could not scrape event page`, colors.red);
+      return { status: 'failed', reason: 'parse_error' };
+    }
   }
-  
-  // Scrape the event page sidebar for authoritative date/time/location/website data.
+
+  // Scrape the event page sidebar for authoritative date/time/location/website data (only if not already scraped).
   // The sidebar is always correct, whereas the blockquote in the RSS body can have
   // wrong dates/times added by the bitcoinonly.events site owner.
-  const scraped = await scrapeEventPage(externalUrl);
+  if (!scraped) {
+    scraped = await scrapeEventPage(externalUrl);
+  }
   
   // Determine date/time: prefer scraped sidebar (UTC timestamps), fall back to blockquote parsing
   let startDateTime, endDateTime;
