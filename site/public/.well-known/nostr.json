@@ -1,0 +1,28 @@
+{
+    "names": {
+        "hey": "de2d9f416ea6c60097dfdb78f03469c095cc8d6d811532844c4ce0de2cd1bb2c",
+        "dcbitdevs": "d16c7d237241d25263a3138a0e1b1d7720b39a614cffbea269b60c8626b2e5bf",
+        "trey": "a762b5bb70506089e8af2b11f27ffae8d75191638ec6bd52f0c454280c393a86",
+        "gary": "d3d74124ddfb5bdc61b8f18d17c3335bbb4f8c71182a35ee27314a49a4eb7b1d",
+        "tkay": "9cb3545c36940d9a2ef86d50d5c7a8fab90310cc898c4344bcfc4c822ff47bca",
+        "david": "42576a819d1b69472fbc9fefd356e2c127afb1bc25847753ec692c06a8ead90a",
+        "LZP": "3f1de51da0f9d5248a96ed1c533b7a2b98d9f80aebc81b214ab507f6c7a170a4",
+        "boatingaccident": "90cca4db5ad5a9359d88ed8a6710df461d73a7e51b02e633016aefc05b130ac6",
+        "wren": "ca86d55ab426d52de1732413d69b9b1b063a7980968b8b69635a89a562af1bec",
+        "wrensnest": "70f3361893ba117949eb8c99feb903d8c77dcc6f91995de89a32fd5e5001d9cf",
+        "notemaster": "ffbadbad2bacd2b32deecb459111030cf11e2bfd9bda12505c2154b23754e909",
+        "eggs": "7d3cb1b53c777914f2f3fce49f67833d6a9099d36515ee8802b677ee8106d2d6",
+        "mauricio": "7dd6058ed7c0970cfcf988add550b308eb0520c7da7b2d7b5766f8562df8f5c8",
+        "testington": "0897c6bca7af170d6b8ee21e366ff01a76352ddd98ffb0b9877c9778bd4c886c",
+        "brrr": "cf17edc05f702a2937efd831e9085ac86db73a24b01de9c22450e0a65d8e8439",
+        "bdi": "87789f8ef4ae61e94cbf1f929b3e00ccea3f08e4d0d9d9cc979ddbefa8e2ccb2",
+        "dmvbtcnotifier": "ab3d7eec2613e3e47bd52005d6e7b8956c3797317dfccc75944249c4dc9f7a1b"
+    },
+    "relays": {
+        "de2d9f416ea6c60097dfdb78f03469c095cc8d6d811532844c4ce0de2cd1bb2c": [
+        "wss://relay.bitcoindistrict.org",
+        "wss://relay.primal.net",
+        "wss://relay.damus.io"
+        ]
+    }
+}
