@@ -8,8 +8,6 @@ on:
       - 'README*.md'
       - 'docs/**'
       - '.cursor/**'
-  repository_dispatch:
-    types: [bdi-site-updated]
   workflow_dispatch:
     inputs:
       force_infrastructure:
@@ -38,11 +36,10 @@ jobs:
       changed: ${{ steps.detect_changes.outputs.changed }}
       roles: ${{ steps.detect_changes.outputs.roles }}
     if: |
-      github.event_name != 'repository_dispatch' &&
-      ((github.event_name == 'workflow_dispatch' && !inputs.skip_infrastructure) ||
-       (github.event_name == 'push' &&
-        !contains(github.event.head_commit.message, '[skip ansible]') &&
-        !contains(github.event.head_commit.message, '[skip infrastructure]')))
+      (github.event_name == 'workflow_dispatch' && !inputs.skip_infrastructure) ||
+      (github.event_name == 'push' &&
+       !contains(github.event.head_commit.message, '[skip ansible]') &&
+       !contains(github.event.head_commit.message, '[skip infrastructure]'))
 
     steps:
       - name: Checkout code
@@ -254,7 +251,6 @@ jobs:
     timeout-minutes: 20
     needs: [infrastructure]
     if: |
-      github.event_name != 'repository_dispatch' &&
       !contains(github.event.head_commit.message, '[skip deploy]') &&
       !contains(github.event.head_commit.message, '[skip application]')
 
@@ -336,10 +332,11 @@ jobs:
           cd ${{ env.DEPLOY_PATH }}
           
           echo "Pulling latest Docker images..."
-          docker compose -f docker-compose.prod.yml pull
+          docker compose -f docker-compose.prod.yml pull db cache directus caddy
           
-          echo "Building and starting containers (including Caddy)..."
-          docker compose -f docker-compose.prod.yml up -d --build --force-recreate --remove-orphans
+          echo "Building and starting BD containers..."
+          docker compose -f docker-compose.prod.yml up -d --build --force-recreate --no-deps astro
+          docker compose -f docker-compose.prod.yml up -d db cache directus caddy
           
           echo "Waiting for services to be healthy..."
           sleep 15
@@ -482,42 +479,3 @@ jobs:
           echo "ssh deploy@${{ secrets.PRODUCTION_HOST }}"
           exit 1
 
-  # Caddy-only reload for BDI site updates (triggered via repository_dispatch)
-  reload-caddy:
-    name: Reload Caddy for BDI Update
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    if: github.event_name == 'repository_dispatch'
-
-    steps:
-      - name: Configure SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.PRODUCTION_SSH_KEY_DEPLOY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
-
-      - name: Reload Caddy
-        run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
-            ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'ENDSSH'
-          set -e
-          echo "Reloading Caddy to pick up new BDI static files..."
-          docker exec bd-web-caddy caddy reload --config /etc/caddy/Caddyfile
-          echo "Caddy reloaded successfully"
-          ENDSSH
-
-      - name: Health check BDI site
-        run: |
-          sleep 5
-          STATUS=$(curl -L -s -o /dev/null -w "%{http_code}" --max-time 10 "https://bitcoindistrictinitiative.org/" 2>/dev/null || echo "000")
-          if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 400 ]; then
-            echo "✅ BDI site is healthy (HTTP $STATUS)"
-          else
-            echo "⚠️  BDI site returned HTTP $STATUS (DNS may not be configured yet)"
-          fi
-
-      - name: Clean up SSH keys
-        if: always()
-        run: |
-          rm -f ~/.ssh/deploy_key
