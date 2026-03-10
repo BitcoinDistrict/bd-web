@@ -16,7 +16,7 @@ cms.bitcoindistrict.org {
 
     # Access logging
     log {
-        output file /data/logs/access.log {
+        output file /data/logs/cms-access.log {
             roll_size 100mb
             roll_keep 5
             roll_keep_for 720h
@@ -25,13 +25,9 @@ cms.bitcoindistrict.org {
         level INFO
     }
 
-    # Handle assets endpoint with CORS headers for cross-origin requests
-    # This is critical for iOS Safari which is stricter about CORS
-    # Use handle (not handle_path) to preserve full /assets/{id} path for Directus
-    
-    # Handle preflight OPTIONS requests separately
-    @options method OPTIONS path /assets*
-    handle @options {
+    # Handle preflight OPTIONS requests for assets (one block per allowed origin)
+    @optionsBD method OPTIONS path /assets* header Origin https://bitcoindistrict.org
+    handle @optionsBD {
         header Access-Control-Allow-Origin "https://bitcoindistrict.org"
         header Access-Control-Allow-Methods "GET, HEAD, OPTIONS"
         header Access-Control-Allow-Headers "Range"
@@ -39,20 +35,35 @@ cms.bitcoindistrict.org {
         header Vary "Origin"
         respond 204
     }
-    
+
+    @optionsBDI method OPTIONS path /assets* header Origin https://bitcoindistrictinitiative.org
+    handle @optionsBDI {
+        header Access-Control-Allow-Origin "https://bitcoindistrictinitiative.org"
+        header Access-Control-Allow-Methods "GET, HEAD, OPTIONS"
+        header Access-Control-Allow-Headers "Range"
+        header Access-Control-Expose-Headers "Content-Range, Content-Length, Accept-Ranges"
+        header Vary "Origin"
+        respond 204
+    }
+
     # Handle GET/HEAD requests for assets with CORS headers
     handle /assets* {
+        # Set CORS origin dynamically based on the requesting origin
+        @fromBD header Origin https://bitcoindistrict.org
+        header @fromBD Access-Control-Allow-Origin "https://bitcoindistrict.org"
+
+        @fromBDI header Origin https://bitcoindistrictinitiative.org
+        header @fromBDI Access-Control-Allow-Origin "https://bitcoindistrictinitiative.org"
+
+        header Access-Control-Allow-Methods "GET, HEAD, OPTIONS"
+        header Access-Control-Allow-Headers "Range"
+        header Access-Control-Expose-Headers "Content-Range, Content-Length, Accept-Ranges"
+        header Vary "Origin"
+
         reverse_proxy http://directus:8055 {
-            # CORS response headers (header_down sets response headers)
-            header_down Access-Control-Allow-Origin "https://bitcoindistrict.org"
-            header_down Access-Control-Allow-Methods "GET, HEAD, OPTIONS"
-            header_down Access-Control-Allow-Headers "Range"
-            header_down Access-Control-Expose-Headers "Content-Range, Content-Length, Accept-Ranges"
-            header_down Vary "Origin"
             header_down Cache-Control "public, max-age=31536000, immutable"
             header_down X-Content-Type-Options "nosniff"
-            
-            # Request headers to forward to Directus
+
             header_up Host {host}
             header_up X-Real-IP {remote_host}
             header_up X-Forwarded-For {remote_host}
@@ -64,14 +75,12 @@ cms.bitcoindistrict.org {
     # Proxy to Directus container (use container name, not localhost)
     handle {
         reverse_proxy http://directus:8055 {
-            # Forward real client information
             header_up Host {host}
             header_up X-Real-IP {remote_host}
             header_up X-Forwarded-For {remote_host}
             header_up X-Forwarded-Proto {scheme}
             header_up X-Forwarded-Host {host}
             
-            # Timeouts for longer operations
             transport http {
                 dial_timeout 10s
                 response_header_timeout 60s
@@ -171,6 +180,46 @@ bitcoindistrict.org {
         @4xx expression `{err.status_code} >= 400 && {err.status_code} < 500`
         handle @4xx {
             respond "The requested resource was not found." 404
+        }
+    }
+}
+
+# Bitcoin District Initiative - static site
+bitcoindistrictinitiative.org {
+    encode gzip
+
+    log {
+        output file /data/logs/bdi-access.log {
+            roll_size 100mb
+            roll_keep 5
+            roll_keep_for 720h
+        }
+        format json
+        level INFO
+    }
+
+    root * /srv/bdi
+    try_files {path} {path}/index.html {path}.html
+    file_server
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Frame-Options "SAMEORIGIN"
+        X-Content-Type-Options "nosniff"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "geolocation=(), microphone=(), camera=()"
+        -Server
+    }
+
+    handle_errors {
+        @5xx expression `{err.status_code} >= 500 && {err.status_code} < 600`
+        handle @5xx {
+            respond "Service temporarily unavailable." 503
+        }
+        @4xx expression `{err.status_code} >= 400 && {err.status_code} < 500`
+        handle @4xx {
+            respond "Not found." 404
         }
     }
 }

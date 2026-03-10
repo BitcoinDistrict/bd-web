@@ -42,6 +42,15 @@
     mode: '0755'
   tags: deploy-user
 
+- name: Create bdi-web deployment directory
+  file:
+    path: "/home/{{ app_user }}/bdi-web/dist"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    mode: '0755'
+  tags: deploy-user
+
 - name: Configure passwordless sudo for deploy user
   copy:
     dest: /etc/sudoers.d/deploy

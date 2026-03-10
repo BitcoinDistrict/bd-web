@@ -56,7 +56,7 @@ services:
       ADMIN_PASSWORD: ${DIRECTUS_ADMIN_PASSWORD}
       PUBLIC_URL: "https://cms.bitcoindistrict.org"
       CORS_ENABLED: "true"
-      CORS_ORIGIN: "https://bitcoindistrict.org"
+      CORS_ORIGIN: "https://bitcoindistrict.org,https://bitcoindistrictinitiative.org"
       CACHE_ENABLED: "true"
       CACHE_STORE: "redis"
       REDIS: "redis://cache:6379"
@@ -160,6 +160,7 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - /mnt/data/caddy-data:/data
       - /mnt/data/caddy-config:/config
+      - /home/deploy/bdi-web/dist:/srv/bdi:ro
     networks:
       - bd-network
     depends_on:

@@ -30,19 +30,20 @@ The production infrastructure consists of:
 ### URL Structure
 
 - Main site: `https://bitcoindistrict.org`
+- BDI site: `https://bitcoindistrictinitiative.org` (static, served by Caddy)
 - Admin panel: `https://cms.bitcoindistrict.org`
 - Assets: `https://bitcoindistrict.org/assets/*`
 
 ### Server Layout
 
 ```
-/home/deploy/bd-directus-astro/    # Application code
-/mnt/data/postgres/                 # Database files
-/mnt/data/directus-uploads/         # User uploads
-/mnt/data/caddy-data/              # SSL certificates
-/mnt/data/swapfile                 # Swap file (2GB)
-/etc/caddy/Caddyfile               # Caddy config (symlink)
-/var/log/caddy/                    # Caddy logs
+/home/deploy/bd-web/               # bd-web application code (Docker Compose stack)
+/home/deploy/bdi-web/dist/         # BDI static site (pre-built, served by Caddy)
+/mnt/data/postgres/                # Database files
+/mnt/data/directus-uploads/        # User uploads
+/mnt/data/caddy-data/             # SSL certificates & Caddy logs
+/mnt/data/caddy-config/           # Caddy config state
+/mnt/data/swapfile                # Swap file (2GB)
 ```
 
 ## Prerequisites
@@ -225,6 +226,27 @@ Add two A records for the main site and admin subdomain:
    - **Proxy status**: Proxied (orange cloud) ✅
    - **TTL**: Auto
 3. Click **Save**
+
+**BDI Site (bitcoindistrictinitiative.org):**
+
+The BDI site is a separate static Astro site deployed from `treystr/bdi-web`. It needs its own DNS A record pointing to the same droplet IP:
+
+1. In the DNS settings for `bitcoindistrictinitiative.org`, add an A record:
+   - **Type**: A
+   - **Name**: `@`
+   - **IPv4 address**: YOUR_SERVER_IP (same droplet as bd-web)
+   - **TTL**: Auto
+2. Caddy will automatically provision a Let's Encrypt certificate for this domain.
+
+**Note**: The BDI site is deployed independently via its own GitHub Actions workflow in `treystr/bdi-web`. When it pushes to main, it rsyncs built static files to `/home/deploy/bdi-web/dist/` and triggers a Caddy reload on bd-web via `repository_dispatch`.
+
+### Secrets needed in `treystr/bdi-web`
+
+| Secret Name | Description |
+|-------------|-------------|
+| `PRODUCTION_HOST` | Same VPS IP as bd-web |
+| `PRODUCTION_SSH_KEY_DEPLOY` | SSH private key for the `deploy` user |
+| `BD_WEB_DEPLOY_TOKEN` | GitHub PAT with `contents:write` on `BitcoinDistrict/bd-web` (for `repository_dispatch`) |
 
 ### Step 3: Configure Cloudflare SSL/TLS
 
