@@ -210,7 +210,6 @@ services:
       - bd-network
     depends_on:
       - astro
-      - bdi-astro
       - directus
     restart: unless-stopped
     healthcheck:

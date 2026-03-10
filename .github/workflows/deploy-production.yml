@@ -336,7 +336,7 @@ jobs:
           
           echo "Building and starting BD containers..."
           docker compose -f docker-compose.prod.yml up -d --build --force-recreate --no-deps astro
-          docker compose -f docker-compose.prod.yml up -d db cache directus caddy
+          docker compose -f docker-compose.prod.yml up -d --no-deps db cache directus caddy
           
           echo "Waiting for services to be healthy..."
           sleep 15
