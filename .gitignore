@@ -12,6 +12,7 @@ db-backups/
 site/.git.bak/
 
 .directus-template-cli/
+schema.yaml
 
 # Deployment and Infrastructure
 ansible/*.retry
