@@ -145,14 +145,12 @@
     user: "{{ app_user }}"
     minute: "{{ rss_import_cron_minute | default('0') }}"
     hour: "{{ rss_import_cron_hour | default('*/6') }}"
-    job: "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin NODE_ENV=production cd {{ app_dir }} && {{ npm_path.stdout | default('npm') }} run import-events >> {{ app_dir }}/logs/rss-import.log 2>&1"
+    job: "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin NODE_ENV=production cd {{ app_dir }} && npm run import-events >> {{ app_dir }}/logs/rss-import.log 2>&1"
     state: present
   tags: deploy-user
   when: 
     - rss_import_enabled | default(true)
-    - npm_path is defined
-    - npm_path.rc is defined
-    - npm_path.rc == 0
+    - app_dir is defined
 
 - name: Create logs directory for cron job output
   file:
@@ -163,3 +161,23 @@
     mode: '0755'
   tags: deploy-user
   when: app_dir is defined
+
+- name: Read deploy user crontab for RSS import verification
+  command: crontab -l
+  register: deploy_user_crontab
+  changed_when: false
+  failed_when: false
+  become: yes
+  become_user: "{{ app_user }}"
+  tags: deploy-user
+  when:
+    - rss_import_enabled | default(true)
+    - app_user is defined
+
+- name: Display RSS import cron verification result
+  debug:
+    msg: "{{ 'RSS import cron present for deploy user' if ((deploy_user_crontab.stdout | default('') | regex_search('Import RSS events from BitcoinOnly\\.events')) is not none) else 'RSS import cron not found in deploy user crontab' }}"
+  tags: deploy-user
+  when:
+    - rss_import_enabled | default(true)
+    - deploy_user_crontab is defined

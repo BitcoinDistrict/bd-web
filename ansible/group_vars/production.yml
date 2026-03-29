@@ -43,4 +43,4 @@ rss_import_enabled: true
 # Cron schedule: runs every 6 hours by default (0 */6 * * *)
 # Format: minute hour (use */N for every N hours)
 rss_import_cron_minute: "0"
-rss_import_cron_hour: "*/4"
+rss_import_cron_hour: "8,20"

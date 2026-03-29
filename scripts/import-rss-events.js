@@ -90,6 +90,60 @@ function log(message, color = colors.reset) {
   console.log(`${color}${message}${colors.reset}`);
 }
 
+const imageImportStats = {
+  attempted: 0,
+  uploaded: 0,
+  failed: 0,
+  skippedNoUrl: 0,
+  failureReasons: {}
+};
+
+function incrementImageFailure(reason) {
+  imageImportStats.failureReasons[reason] = (imageImportStats.failureReasons[reason] || 0) + 1;
+}
+
+function extractUrlFromSrcset(srcsetValue) {
+  if (!srcsetValue || typeof srcsetValue !== 'string') return null;
+  const firstCandidate = srcsetValue
+    .split(',')
+    .map((entry) => entry.trim().split(/\s+/)[0])
+    .find(Boolean);
+  return firstCandidate || null;
+}
+
+function normalizeUrl(rawUrl, baseUrl) {
+  if (!rawUrl || typeof rawUrl !== 'string') return null;
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return null;
+  const withProtocol = trimmed.startsWith('//') ? `https:${trimmed}` : trimmed;
+  try {
+    return baseUrl ? new URL(withProtocol, baseUrl).toString() : new URL(withProtocol).toString();
+  } catch (error) {
+    return null;
+  }
+}
+
+function findPrimaryImageUrl($, baseUrl) {
+  const firstImg = $('img').first();
+  if (!firstImg || firstImg.length === 0) return null;
+
+  const candidates = [
+    firstImg.attr('src'),
+    firstImg.attr('data-src'),
+    firstImg.attr('data-lazy-src'),
+    firstImg.attr('data-original'),
+    extractUrlFromSrcset(firstImg.attr('srcset')),
+    extractUrlFromSrcset(firstImg.attr('data-srcset'))
+  ].filter(Boolean);
+
+  for (const candidate of candidates) {
+    const normalized = normalizeUrl(candidate, baseUrl);
+    if (normalized) return normalized;
+  }
+
+  return null;
+}
+
 /**
  * Scrape the event page sidebar to get authoritative event metadata.
  * The sidebar (div.event_assets) contains the correct date/time/location/website
@@ -123,7 +177,8 @@ async function scrapeEventPage(eventUrl) {
       venueName: null,
       venueAddress: null,
       rsvpUrl: null,
-      timezone: null
+      timezone: null,
+      imageUrl: null
     };
     
     // --- 1. Extract UTC timestamps from data attributes (most reliable source) ---
@@ -180,6 +235,18 @@ async function scrapeEventPage(eventUrl) {
       result.rsvpUrl = websiteLink;
       log(`  ✓ RSVP link: ${websiteLink}`, colors.green);
     }
+
+    // --- 5. Extract event image URL (fallback when RSS content parsing misses image) ---
+    const pageImageCandidate =
+      $('meta[property="og:image"]').attr('content') ||
+      $('meta[name="twitter:image"]').attr('content') ||
+      $('.entry-content img').first().attr('src') ||
+      $('.post img').first().attr('src');
+    const normalizedPageImage = normalizeUrl(pageImageCandidate, eventUrl);
+    if (normalizedPageImage) {
+      result.imageUrl = normalizedPageImage;
+      log(`  ✓ Page image found: ${normalizedPageImage}`, colors.green);
+    }
     
     // Validate that we got at least the start time (minimum required data)
     if (!result.startDateTime) {
@@ -197,7 +264,7 @@ async function scrapeEventPage(eventUrl) {
 /**
  * Parse event details from HTML content
  */
-function parseEventDetails(htmlContent) {
+function parseEventDetails(htmlContent, eventUrl = null) {
   if (htmlContent == null || typeof htmlContent !== 'string') {
     return null;
   }
@@ -257,9 +324,8 @@ function parseEventDetails(htmlContent) {
     }
   }
   
-  // Extract main image
-  const firstImg = $('img').first();
-  const imageUrl = firstImg.attr('src');
+  // Extract main image (supports lazy-load and relative URLs)
+  const imageUrl = findPrimaryImageUrl($, eventUrl);
   
   // Extract description (all <p> tags before blockquote, excluding images)
   const descriptionParts = [];
@@ -487,47 +553,99 @@ function parseDateTime(dateStr, timeStr) {
  * Download image and upload to Directus
  */
 async function downloadAndUploadImage(imageUrl) {
-  if (!imageUrl) return null;
-  
+  const normalizedImageUrl = normalizeUrl(imageUrl);
+  if (!normalizedImageUrl) {
+    throw new Error(`invalid_url:${imageUrl}`);
+  }
+
+  const maxAttempts = 2;
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      log(`    → Downloading image (attempt ${attempt}/${maxAttempts}): ${normalizedImageUrl}`, colors.cyan);
+
+      const response = await fetch(normalizedImageUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+      });
+      if (!response.ok) {
+        const responseBody = await response.text().catch(() => '');
+        throw new Error(`download_non_ok:${response.status}:${response.statusText}:${responseBody.slice(0, 300)}`);
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      // Get filename from URL
+      const urlPath = new URL(normalizedImageUrl).pathname;
+      const filename = urlPath.split('/').pop() || 'event-image.jpg';
+
+      // Upload to Directus using fetch directly with token
+      const uploadFormData = new FormData();
+      const blob = new Blob([buffer], { type: response.headers.get('content-type') || 'image/jpeg' });
+      uploadFormData.append('file', blob, filename);
+
+      const uploadResponse = await fetch(`${directusUrl}/files`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${DIRECTUS_TOKEN}`
+        },
+        body: uploadFormData
+      });
+
+      if (!uploadResponse.ok) {
+        const uploadErrorBody = await uploadResponse.text().catch(() => '');
+        throw new Error(`upload_non_ok:${uploadResponse.status}:${uploadResponse.statusText}:${uploadErrorBody.slice(0, 500)}`);
+      }
+
+      const uploadResult = await uploadResponse.json();
+      const fileId = uploadResult.data?.id;
+      if (!fileId) {
+        throw new Error(`upload_missing_file_id:${JSON.stringify(uploadResult).slice(0, 500)}`);
+      }
+
+      log(`    ✓ Image uploaded: ${fileId}`, colors.green);
+      return fileId;
+    } catch (error) {
+      lastError = error;
+      log(`    ⚠ Image upload attempt ${attempt} failed: ${error.message}`, colors.yellow);
+      if (attempt < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+  }
+
+  throw lastError || new Error('upload_failed:unknown');
+}
+
+function classifyImageFailure(errorMessage) {
+  if (!errorMessage) return 'unknown';
+  if (errorMessage.startsWith('invalid_url:')) return 'invalid_url';
+  if (errorMessage.startsWith('download_non_ok:')) return 'download_non_ok';
+  if (errorMessage.startsWith('upload_non_ok:')) return 'upload_non_ok';
+  if (errorMessage.startsWith('upload_missing_file_id:')) return 'upload_missing_file_id';
+  return 'other';
+}
+
+async function importEventImage(imageUrl) {
+  if (!imageUrl) {
+    imageImportStats.skippedNoUrl++;
+    return null;
+  }
+
+  imageImportStats.attempted++;
+
   try {
-    log(`    → Downloading image: ${imageUrl}`, colors.cyan);
-    
-    const response = await fetch(imageUrl);
-    if (!response.ok) {
-      throw new Error(`Failed to download: ${response.statusText}`);
-    }
-    
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    
-    // Get filename from URL
-    const urlPath = new URL(imageUrl).pathname;
-    const filename = urlPath.split('/').pop() || 'event-image.jpg';
-    
-    // Upload to Directus using fetch directly with token
-    const uploadFormData = new FormData();
-    const blob = new Blob([buffer], { type: response.headers.get('content-type') || 'image/jpeg' });
-    uploadFormData.append('file', blob, filename);
-    
-    const uploadResponse = await fetch(`${directusUrl}/files`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${DIRECTUS_TOKEN}`
-      },
-      body: uploadFormData
-    });
-    
-    if (!uploadResponse.ok) {
-      throw new Error(`Upload failed: ${uploadResponse.statusText}`);
-    }
-    
-    const uploadResult = await uploadResponse.json();
-    const fileId = uploadResult.data?.id;
-    
-    log(`    ✓ Image uploaded: ${fileId}`, colors.green);
+    const fileId = await downloadAndUploadImage(imageUrl);
+    imageImportStats.uploaded++;
     return fileId;
   } catch (error) {
-    log(`    ⚠ Failed to upload image: ${error.message}`, colors.yellow);
+    imageImportStats.failed++;
+    const reason = classifyImageFailure(error.message);
+    incrementImageFailure(reason);
+    log(`    ⚠ Failed to upload image after retries (${reason}): ${error.message}`, colors.yellow);
     return null;
   }
 }
@@ -609,7 +727,7 @@ async function processRSSItem(item, feedSource, feedName) {
   
   // Use content:encoded first, then content/description; never pass undefined to parseEventDetails
   const htmlContent = item.contentEncoded ?? item.content ?? item.description ?? '';
-  let parsed = parseEventDetails(htmlContent);
+  let parsed = parseEventDetails(htmlContent, externalUrl);
   let scraped = null;
 
   // When RSS has no parseable body (e.g. feed only has <description>), still try scraping the event page.
@@ -623,7 +741,7 @@ async function processRSSItem(item, feedSource, feedName) {
         timeStr: null,
         venueName: scraped.venueName ?? null,
         venueAddress: scraped.venueAddress ?? null,
-        imageUrl: null,
+        imageUrl: scraped.imageUrl ?? null,
         description: item.contentSnippet || item.description || '',
         rsvpUrl: scraped.rsvpUrl ?? null
       };
@@ -699,7 +817,7 @@ async function processRSSItem(item, feedSource, feedName) {
         log(`  → Event missing image, will re-import...`, colors.cyan);
         
         // Upload the image
-        const imageId = await downloadAndUploadImage(parsed.imageUrl);
+        const imageId = await importEventImage(parsed.imageUrl);
         
         if (imageId) {
           updatesNeeded.image = imageId;
@@ -752,7 +870,7 @@ async function processRSSItem(item, feedSource, feedName) {
   // Upload image
   let imageId = null;
   if (parsed.imageUrl) {
-    imageId = await downloadAndUploadImage(parsed.imageUrl);
+    imageId = await importEventImage(parsed.imageUrl);
   }
   
   // Find or create venue
@@ -930,6 +1048,16 @@ async function main() {
   log(`  Updated: ${overallResults.updated}`, colors.blue);
   log(`  Skipped: ${overallResults.skipped}`, colors.yellow);
   log(`  Failed: ${overallResults.failed}`, colors.red);
+  log(`  Image uploads attempted: ${imageImportStats.attempted}`, colors.blue);
+  log(`  Images uploaded: ${imageImportStats.uploaded}`, colors.green);
+  log(`  Image uploads failed: ${imageImportStats.failed}`, colors.yellow);
+  log(`  Images skipped (no URL): ${imageImportStats.skippedNoUrl}`, colors.yellow);
+  if (imageImportStats.failed > 0) {
+    log(`  Image failure reasons:`, colors.yellow);
+    for (const [reason, count] of Object.entries(imageImportStats.failureReasons)) {
+      log(`    - ${reason}: ${count}`, colors.yellow);
+    }
+  }
   log('');
 }
 
