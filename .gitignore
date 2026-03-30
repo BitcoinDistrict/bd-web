@@ -30,3 +30,5 @@ backups/
 
 # Logs
 *.log
+
+snapshot.json
