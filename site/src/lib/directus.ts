@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import { createDirectus, readItems, readSingleton, rest, staticToken } from "@directus/sdk";
+import { createDirectus, readItem, readItems, readSingleton, rest, staticToken } from "@directus/sdk";
 import { generateSlug } from "./utils";
 
 export type CmsErrorCode =
@@ -1024,6 +1024,255 @@ export async function getPageData(slug: string): Promise<CmsResult<any>> {
         console.error("[Meetups] Fix: Settings → Users & Roles → Roles → [Your Role] → Permissions → Meetups → Enable Read");
         return { data: null, error: "CMS_UNAVAILABLE" };
       }
+
+      return {
+        data: null,
+        error: isProbablyNetworkError(error) ? "CMS_UNAVAILABLE" : "UNKNOWN",
+      };
+    }
+  }
+
+  export interface NewsItem {
+    id: number;
+    status: string;
+    sort: number | null;
+    title: string;
+    subtitle: string | null;
+    date: string | null;
+    content: string | null;
+    cover:
+      | string
+      | {
+          id: string;
+          filename_disk?: string;
+          width?: number;
+          height?: number;
+        }
+      | null;
+    type: string[] | string | null;
+    date_created?: string | null;
+    date_updated?: string | null;
+  }
+
+  function normalizeNewsTags(type: NewsItem["type"]): string[] {
+    if (Array.isArray(type)) {
+      return type.filter((tag): tag is string => typeof tag === "string");
+    }
+    if (typeof type === "string" && type.trim().length > 0) {
+      return [type];
+    }
+    return [];
+  }
+
+  function stripHtml(value: string): string {
+    return value
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function trimAtWordBoundary(value: string, maxLength = 160): string {
+    if (value.length <= maxLength) return value;
+    const truncated = value.slice(0, maxLength);
+    const lastSpace = truncated.lastIndexOf(" ");
+    if (lastSpace > maxLength * 0.7) return `${truncated.slice(0, lastSpace)}...`;
+    return `${truncated}...`;
+  }
+
+  export function slugify(text: string): string {
+    return generateSlug(text);
+  }
+
+  export function getNewsFixedSlug(item: Pick<NewsItem, "title" | "id">): string {
+    const candidate = slugify(item.title);
+    if (candidate.length > 0) return candidate;
+    return String(item.id);
+  }
+
+  export function getNewsSlug(item: Pick<NewsItem, "id" | "title">): string {
+    return `${item.id}-${getNewsFixedSlug(item)}`;
+  }
+
+  export function getNewsImageUrl(
+    cover: NewsItem["cover"],
+    width = 800
+  ): string | null {
+    if (!cover) return null;
+    const imageId = typeof cover === "string" ? cover : cover.id;
+    return `${getDirectusUrl()}/assets/${imageId}?format=webp&quality=80&width=${width}`;
+  }
+
+  export function getNewsSeoDescription(
+    item: Pick<NewsItem, "subtitle" | "content">,
+    maxLength = 160
+  ): string | undefined {
+    const subtitle = typeof item.subtitle === "string" ? item.subtitle.trim() : "";
+    if (subtitle.length > 0) return trimAtWordBoundary(subtitle, maxLength);
+
+    const content = typeof item.content === "string" ? stripHtml(item.content) : "";
+    if (content.length > 0) return trimAtWordBoundary(content, maxLength);
+
+    return undefined;
+  }
+
+  export function normalizeNewsType(
+    type: NewsItem["type"]
+  ): "events" | "builders" | "social" | "merchants" | undefined {
+    const tags = normalizeNewsTags(type);
+    if (tags.includes("events")) return "events";
+    if (tags.includes("builders")) return "builders";
+    if (tags.includes("social")) return "social";
+    if (tags.includes("merchants")) return "merchants";
+    return undefined;
+  }
+
+  /**
+   * Fetches all published news articles from BD_NEWS, newest first.
+   */
+  export async function getNews(): Promise<CmsResult<NewsItem[]>> {
+    const client = getDirectusClient();
+    if (!client) {
+      console.error("[News] Directus client not configured");
+      return { data: null, error: "CMS_NOT_CONFIGURED" };
+    }
+
+    try {
+      const items = await withTimeout(
+        client.request(
+          readItems("BD_NEWS", {
+            fields: [
+              "id",
+              "status",
+              "sort",
+              "title",
+              "subtitle",
+              "date",
+              "content",
+              "cover.*",
+              "type",
+              "date_created",
+              "date_updated",
+            ],
+            filter: {
+              status: {
+                _eq: "published",
+              },
+            },
+            sort: ["-date", "-id"],
+          })
+        ),
+        3000
+      );
+
+      console.log(`[News] Fetched ${items.length} published news item(s)`);
+
+      return {
+        data: items as NewsItem[],
+        error: null,
+      };
+    } catch (error: any) {
+      let errorMessage = "Unknown error";
+      let statusCode: number | null = null;
+
+      if (error?.response) {
+        statusCode = error.response.status;
+        const errorBody = error.response._data || error.response.data;
+        if (errorBody?.errors?.[0]?.message) {
+          errorMessage = errorBody.errors[0].message;
+        } else if (errorBody?.message) {
+          errorMessage = errorBody.message;
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      } else {
+        errorMessage = String(error);
+      }
+
+      console.error("[News] Failed to fetch news items:", errorMessage);
+      if (statusCode) {
+        console.error(`[News] HTTP Status: ${statusCode}`);
+      }
+
+      if (statusCode === 403 || errorMessage.includes("permission") || errorMessage.includes("Forbidden")) {
+        console.error("[News] ❌ Permission denied - Service user role needs Read access to 'BD_NEWS' collection");
+        console.error("[News] Fix: Settings → Users & Roles → Roles → [Your Role] → Permissions → BD_NEWS → Enable Read");
+        return { data: null, error: "CMS_UNAVAILABLE" };
+      }
+
+      return {
+        data: null,
+        error: isProbablyNetworkError(error) ? "CMS_UNAVAILABLE" : "UNKNOWN",
+      };
+    }
+  }
+
+  /**
+   * Fetches one published news article from BD_NEWS by ID.
+   */
+  export async function getNewsItem(id: number): Promise<CmsResult<NewsItem>> {
+    const client = getDirectusClient();
+    if (!client) {
+      console.error("[News] Directus client not configured");
+      return { data: null, error: "CMS_NOT_CONFIGURED" };
+    }
+
+    try {
+      const item = await withTimeout(
+        client.request(
+          readItem("BD_NEWS", id, {
+            fields: [
+              "id",
+              "status",
+              "sort",
+              "title",
+              "subtitle",
+              "date",
+              "content",
+              "cover.*",
+              "type",
+              "date_created",
+              "date_updated",
+            ],
+          })
+        ),
+        3000
+      );
+
+      if (!item || (item as any).status !== "published") {
+        return { data: null, error: "NOT_FOUND" };
+      }
+
+      return {
+        data: item as NewsItem,
+        error: null,
+      };
+    } catch (error: any) {
+      let errorMessage = "Unknown error";
+      let statusCode: number | null = null;
+
+      if (error?.response) {
+        statusCode = error.response.status;
+        const errorBody = error.response._data || error.response.data;
+        if (errorBody?.errors?.[0]?.message) {
+          errorMessage = errorBody.errors[0].message;
+        } else if (errorBody?.message) {
+          errorMessage = errorBody.message;
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      } else {
+        errorMessage = String(error);
+      }
+
+      console.error(`[News] Failed to fetch news item ${id}:`, errorMessage);
+      if (statusCode) {
+        console.error(`[News] HTTP Status: ${statusCode}`);
+      }
+
+      if (statusCode === 404) return { data: null, error: "NOT_FOUND" };
+      if (statusCode === 403) return { data: null, error: "CMS_UNAVAILABLE" };
 
       return {
         data: null,

@@ -1,0 +1,278 @@
+---
+interface Props {
+  title: string;
+  excerpt: string;
+  featuredImage: string | null;
+  mobileThumbnail?: string | null;
+  publishDate: Date;
+  slug: string;
+  index: number;
+  type?: "events" | "builders" | "social" | "merchants";
+}
+
+const {
+  title,
+  excerpt,
+  featuredImage,
+  mobileThumbnail = null,
+  publishDate,
+  slug,
+  index,
+  type,
+} = Astro.props;
+
+const mobileImage = mobileThumbnail ?? featuredImage;
+
+const shortDate = publishDate.toLocaleDateString("en-US", {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+});
+
+const fullDate = publishDate.toLocaleDateString("en-US", {
+  month: "long",
+  day: "numeric",
+  year: "numeric",
+});
+
+function getTypeLabel(itemType?: "events" | "builders" | "social" | "merchants"): string {
+  if (itemType === "events") return "Events";
+  if (itemType === "builders") return "Builders";
+  if (itemType === "social") return "Social";
+  if (itemType === "merchants") return "Merchants";
+  return "";
+}
+
+const typeLabel = getTypeLabel(type);
+---
+
+<a
+  href={`/news/${slug}`}
+  class="news-post-item group"
+  data-filter-item
+  data-filter-type={type || ""}
+>
+  <article class="desktop-card">
+    <div class="image-wrap">
+      {featuredImage && (
+        <img
+          src={featuredImage}
+          alt=""
+          width={600}
+          height={338}
+          loading="lazy"
+          decoding="async"
+          class="cover-image"
+        />
+      )}
+      <div class="image-overlay"></div>
+    </div>
+
+    <div class="content">
+      <div class="meta-row">
+        {typeLabel && <span class="type-pill">{typeLabel}</span>}
+        <time datetime={publishDate.toISOString()}>{fullDate}</time>
+      </div>
+
+      <h2>{title}</h2>
+      <p>{excerpt}</p>
+    </div>
+  </article>
+
+  <article class={`mobile-row ${index % 2 === 0 ? "mobile-row-even" : "mobile-row-odd"}`}>
+    <div class="thumb-wrap">
+      {mobileImage && (
+        <img
+          src={mobileImage}
+          alt=""
+          width={64}
+          height={64}
+          loading="lazy"
+          decoding="async"
+          class="thumb-image"
+        />
+      )}
+    </div>
+    <div class="mobile-content">
+      <h2>{title}</h2>
+      <time datetime={publishDate.toISOString()}>{shortDate}</time>
+    </div>
+  </article>
+</a>
+
+<style>
+  .news-post-item {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .desktop-card {
+    display: none;
+  }
+
+  @media (min-width: 768px) {
+    .desktop-card {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+      border: 1px solid rgba(0, 0, 0, 0.14);
+      border-radius: 10px;
+      background: #fff;
+      transition: border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+    }
+
+    .news-post-item:hover .desktop-card {
+      border-color: #0e0535;
+      transform: translateY(-2px);
+      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.09);
+    }
+
+    .image-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+      background: #f3f4f6;
+    }
+
+    .cover-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 240ms ease;
+    }
+
+    .news-post-item:hover .cover-image {
+      transform: scale(1.04);
+    }
+
+    .image-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(14, 5, 53, 0.08);
+      opacity: 0;
+      transition: opacity 180ms ease;
+    }
+
+    .news-post-item:hover .image-overlay {
+      opacity: 1;
+    }
+
+    .content {
+      display: flex;
+      flex-direction: column;
+      padding: 1rem;
+      min-height: 185px;
+    }
+
+    .meta-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.55rem;
+      color: rgba(0, 0, 0, 0.58);
+      font-size: 0.82rem;
+      font-weight: 500;
+    }
+
+    .type-pill {
+      border-radius: 999px;
+      padding: 0.22rem 0.58rem;
+      border: 1px solid rgba(14, 5, 53, 0.2);
+      color: #0e0535;
+      background: rgba(14, 5, 53, 0.05);
+      font-size: 0.74rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .content h2 {
+      margin: 0 0 0.45rem 0;
+      font-size: 1.17rem;
+      line-height: 1.35;
+      color: #111827;
+      transition: color 160ms ease;
+    }
+
+    .news-post-item:hover .content h2 {
+      color: #0e0535;
+    }
+
+    .content p {
+      margin: 0;
+      color: rgba(0, 0, 0, 0.7);
+      font-size: 0.95rem;
+      line-height: 1.6;
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+  }
+
+  .mobile-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  }
+
+  .mobile-row-even {
+    background: #fff;
+  }
+
+  .mobile-row-odd {
+    background: #f8fafc;
+  }
+
+  .thumb-wrap {
+    width: 64px;
+    height: 64px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    background: #f3f4f6;
+    flex-shrink: 0;
+  }
+
+  .thumb-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .mobile-content {
+    min-width: 0;
+  }
+
+  .mobile-content h2 {
+    margin: 0;
+    font-size: 1rem;
+    line-height: 1.35;
+    color: #111827;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .mobile-content time {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.78rem;
+    color: rgba(0, 0, 0, 0.58);
+  }
+
+  @media (min-width: 768px) {
+    .mobile-row {
+      display: none;
+    }
+  }
+</style>

@@ -1,0 +1,142 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import PageHeader from "../../components/PageHeader.astro";
+import FilterButtons from "../../components/ui/FilterButtons.astro";
+import NewsPostCard from "../../components/news/NewsPostCard.astro";
+import {
+  getNews,
+  getNewsImageUrl,
+  getNewsSeoDescription,
+  getNewsSlug,
+  normalizeNewsType,
+  type NewsItem,
+} from "../../lib/directus";
+import { siteConfig } from "../../config/site";
+
+Astro.response.headers.set("Cache-Control", "no-cache, must-revalidate");
+
+const cmsEnabled = import.meta.env.PUBLIC_CMS_ENABLED === "true";
+
+let newsItems: NewsItem[] = [];
+let error: string | null = null;
+
+if (cmsEnabled) {
+  const result = await getNews();
+  if (result.error) {
+    error = result.error;
+  } else {
+    newsItems = result.data ?? [];
+  }
+} else {
+  error = "CMS_UNAVAILABLE";
+}
+
+const seoTitle = "News | Bitcoin District";
+const seoDescription =
+  "Official updates from Bitcoin District, including events, builders, social activity, and merchant highlights.";
+const canonicalPath = "/news";
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  name: "News",
+  description: seoDescription,
+  url: new URL(canonicalPath, siteConfig.siteUrl).toString(),
+  isPartOf: {
+    "@type": "WebSite",
+    name: siteConfig.title,
+    url: siteConfig.siteUrl,
+  },
+};
+
+const filters = [
+  { id: "all", label: "All", value: null },
+  { id: "events", label: "Events", value: "events" },
+  { id: "builders", label: "Builders", value: "builders" },
+  { id: "social", label: "Social", value: "social" },
+  { id: "merchants", label: "Merchants", value: "merchants" },
+];
+---
+
+<Layout seo={{ title: seoTitle, description: seoDescription, canonical: canonicalPath }}>
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+
+  <main class="news-page">
+    <PageHeader
+      title="News"
+      description="Official updates from Bitcoin District, including events, builders, social activity, and merchant highlights."
+    />
+
+    <FilterButtons
+      filters={filters}
+      defaultFilter="all"
+      filterTarget="[data-filter-item]"
+    />
+
+    <section class="news-section">
+      {error ? (
+        <p class="news-fallback">
+          News content is temporarily unavailable. Please check back soon.
+        </p>
+      ) : newsItems.length > 0 ? (
+        <div class="news-grid">
+          {newsItems.map((item, index) => {
+            const publishDate = item.date ? new Date(item.date) : new Date();
+            return (
+              <NewsPostCard
+                title={item.title}
+                excerpt={getNewsSeoDescription(item, 170) ?? ""}
+                featuredImage={getNewsImageUrl(item.cover, 600)}
+                mobileThumbnail={getNewsImageUrl(item.cover, 160)}
+                publishDate={publishDate}
+                slug={getNewsSlug(item)}
+                index={index}
+                type={normalizeNewsType(item.type)}
+              />
+            );
+          })}
+        </div>
+      ) : (
+        <p class="news-fallback">No news items are available yet. Check back soon.</p>
+      )}
+    </section>
+  </main>
+</Layout>
+
+<style>
+  .news-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 3rem 1rem 2rem;
+  }
+
+  .news-section {
+    margin-top: 0.5rem;
+  }
+
+  .news-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: 768px) {
+    .news-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1.25rem;
+    }
+  }
+
+  @media (min-width: 1080px) {
+    .news-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1.25rem;
+    }
+  }
+
+  .news-fallback {
+    text-align: center;
+    padding: 2.5rem 1rem;
+    color: rgba(0, 0, 0, 0.65);
+    font-style: italic;
+  }
+</style>

@@ -50,7 +50,7 @@ export const siteConfig = {
       { label: "Meetups", href: "/meetups" },
       { label: "Podcast", href: "/podcast" },
       { label: "Nostr", href: "/nostr" },
-      { label: "News", href: "https://news.bitcoindistrict.org" },
+      { label: "News", href: "/news" },
     ] satisfies SiteNavItem[],
     footer: [
       { label: "Home", href: "/" },

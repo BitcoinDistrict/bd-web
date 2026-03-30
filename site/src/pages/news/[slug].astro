@@ -1,0 +1,261 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import PageHeader from "../../components/PageHeader.astro";
+import {
+  getNewsItem,
+  getNewsImageUrl,
+  getNewsSeoDescription,
+  getNewsSlug,
+  normalizeNewsType,
+  type NewsItem,
+} from "../../lib/directus";
+import { siteConfig } from "../../config/site";
+
+Astro.response.headers.set("Cache-Control", "no-cache, must-revalidate");
+
+const cmsEnabled = import.meta.env.PUBLIC_CMS_ENABLED === "true";
+const incomingSlug = Astro.params.slug ?? "";
+
+let item: NewsItem | null = null;
+let error: string | null = null;
+
+if (!cmsEnabled) {
+  error = "CMS_UNAVAILABLE";
+} else {
+  const idMatch = incomingSlug.match(/^(\d+)/);
+  if (!idMatch) {
+    error = "NOT_FOUND";
+  } else {
+    const id = Number.parseInt(idMatch[1], 10);
+    const result = await getNewsItem(id);
+    error = result.error;
+    item = result.data;
+  }
+}
+
+if (!item || error) {
+  Astro.response.status = error === "NOT_FOUND" ? 404 : 503;
+}
+
+const canonicalSlug = item ? getNewsSlug(item) : null;
+const canonicalPath = canonicalSlug ? `/news/${canonicalSlug}` : "/news";
+
+if (item && incomingSlug !== canonicalSlug) {
+  return Astro.redirect(canonicalPath, 301);
+}
+
+const coverUrl = item ? getNewsImageUrl(item.cover, 1200) : null;
+const publishDate = item?.date ? new Date(item.date) : null;
+const modifiedDate = item?.date_updated ? new Date(item.date_updated) : publishDate;
+
+const seoTitle = item ? `${item.title} | Bitcoin District News` : "News | Bitcoin District";
+const seoDescription = item
+  ? getNewsSeoDescription(item) ?? "Read the latest update from Bitcoin District."
+  : "News from Bitcoin District.";
+
+const jsonLd =
+  item &&
+  {
+    "@context": "https://schema.org",
+    "@type": "NewsArticle",
+    mainEntityOfPage: new URL(canonicalPath, siteConfig.siteUrl).toString(),
+    headline: item.title,
+    description: seoDescription,
+    datePublished: publishDate?.toISOString(),
+    dateModified: modifiedDate?.toISOString(),
+    image: coverUrl ? [coverUrl] : undefined,
+    articleSection: normalizeNewsType(item.type),
+    publisher: {
+      "@type": "Organization",
+      name: siteConfig.title,
+      url: siteConfig.siteUrl,
+    },
+  };
+---
+
+{!item || error ? (
+  <Layout seo={{ title: "News Article Not Found", description: "This news article is unavailable." }}>
+    <main class="news-detail-page">
+      <section class="news-error">
+        <h1>Article Not Found</h1>
+        <p>This news article does not exist or is not published.</p>
+        <a href="/news">Back to News</a>
+      </section>
+    </main>
+  </Layout>
+) : (
+  <Layout
+    seo={{
+      title: seoTitle,
+      description: seoDescription,
+      image: coverUrl ?? undefined,
+      canonical: canonicalPath,
+      type: "article",
+    }}
+  >
+    {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
+
+    <main class="news-detail-page">
+      <PageHeader title={item.title} description={item.subtitle ?? undefined} />
+
+      <article class="news-article">
+        <div class="news-top-meta">
+          <a href="/news" class="back-link">All News</a>
+          {publishDate && (
+            <time datetime={publishDate.toISOString()} class="publish-date">
+              {publishDate.toLocaleDateString("en-US", {
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </time>
+          )}
+        </div>
+
+        {coverUrl && (
+          <img
+            src={coverUrl}
+            alt=""
+            width={1200}
+            height={675}
+            loading="eager"
+            class="news-cover"
+          />
+        )}
+
+        {item.content && <div class="news-content" set:html={item.content}></div>}
+
+        <div class="news-bottom-nav">
+          <a href="/news" class="back-link">All News</a>
+        </div>
+      </article>
+    </main>
+  </Layout>
+)}
+
+<style>
+  .news-detail-page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 3rem 1rem;
+  }
+
+  .news-error {
+    text-align: center;
+    padding: 3rem 1rem;
+  }
+
+  .news-error h1 {
+    margin: 0 0 0.75rem 0;
+    color: #111827;
+  }
+
+  .news-error p {
+    margin: 0;
+    color: rgba(0, 0, 0, 0.66);
+  }
+
+  .news-error a {
+    display: inline-block;
+    margin-top: 1.25rem;
+    color: #0e0535;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .news-error a:hover {
+    text-decoration: underline;
+  }
+
+  .news-top-meta {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .back-link {
+    color: #0e0535;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .back-link:hover {
+    text-decoration: underline;
+  }
+
+  .publish-date {
+    color: rgba(0, 0, 0, 0.62);
+    font-size: 0.92rem;
+  }
+
+  .news-cover {
+    width: 100%;
+    height: auto;
+    border-radius: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.16);
+    margin: 0.75rem 0 2rem 0;
+  }
+
+  .news-content {
+    color: #111827;
+    line-height: 1.75;
+    font-size: 1.08rem;
+  }
+
+  .news-content :global(p) {
+    margin-bottom: 1.15rem;
+  }
+
+  .news-content :global(h1),
+  .news-content :global(h2),
+  .news-content :global(h3),
+  .news-content :global(h4) {
+    margin-top: 2rem;
+    margin-bottom: 0.8rem;
+    line-height: 1.3;
+  }
+
+  .news-content :global(img) {
+    max-width: 100%;
+    height: auto;
+    border-radius: 10px;
+    margin: 1.5rem 0;
+  }
+
+  .news-content :global(ul),
+  .news-content :global(ol) {
+    margin: 0 0 1rem 0;
+    padding-left: 1.5rem;
+  }
+
+  .news-content :global(blockquote) {
+    border-left: 3px solid #0e0535;
+    margin: 1.5rem 0;
+    padding-left: 1rem;
+    color: rgba(0, 0, 0, 0.72);
+  }
+
+  .news-bottom-nav {
+    margin-top: 2.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+  }
+
+  @media (max-width: 640px) {
+    .news-detail-page {
+      padding: 2.25rem 1rem;
+    }
+
+    .news-top-meta {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.35rem;
+    }
+
+    .news-content {
+      font-size: 1rem;
+    }
+  }
+</style>

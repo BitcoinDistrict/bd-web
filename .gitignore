@@ -32,3 +32,5 @@ backups/
 *.log
 
 snapshot.json
+
+temp
