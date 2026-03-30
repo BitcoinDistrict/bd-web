@@ -66,7 +66,7 @@ export const siteConfig = {
     { ariaLabel: 'X', icon: 'tabler:brand-x', href: 'https://x.com/BTCDistrict' },
     { ariaLabel: 'Nostr', icon: 'nostr', href: 'https://primal.net/p/npub1mcke7stw5mrqp97lmdu0qdrfcz2uertdsy2n9pzvfnsdutx3hvkq7d5mnw' },
     { ariaLabel: 'Github', icon: 'tabler:brand-github', href: 'https://github.com/BitcoinDistrict' },
-    { ariaLabel: 'RSS Feed', icon: 'tabler:rss', href: '/rss.xml' },
+    { ariaLabel: 'RSS Feed', icon: 'tabler:rss', href: '/feeds' },
   ] satisfies SocialLink[],
   footerData: {
     links: [
