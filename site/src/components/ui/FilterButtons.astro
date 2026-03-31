@@ -120,7 +120,7 @@ const {
 
 <script define:vars={{ filterTarget }}>
   function initFilterButtons() {
-    const filterButtons = document.querySelectorAll<HTMLButtonElement>("[data-filter-button]");
+    const filterButtons = document.querySelectorAll("[data-filter-button]");
 
     filterButtons.forEach((button) => {
       if (button.dataset.filterInitialized === "true") return;
@@ -139,10 +139,11 @@ const {
 
         const items = document.querySelectorAll(filterTarget);
         items.forEach((item) => {
-          if (!(item instanceof HTMLElement)) return;
-          const itemType = item.dataset.filterType ?? "";
+          const itemType = item.getAttribute("data-filter-type") ?? "";
           const shouldShow = filterValue === "all" || itemType === filterValue;
-          item.style.display = shouldShow ? "" : "none";
+          if (item instanceof HTMLElement) {
+            item.style.display = shouldShow ? "" : "none";
+          }
         });
       });
     });
