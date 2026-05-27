@@ -1,0 +1,22 @@
+---
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+export const prerender = true;
+
+export async function getStaticPaths() {
+  const { readdirSync } = await import('node:fs');
+  const slidesDir = join(process.cwd(), 'src', 'slides');
+  return readdirSync(slidesDir)
+    .filter((f: string) => f.endsWith('.html'))
+    .map((f: string) => ({ params: { session: f.replace('.html', '') } }));
+}
+
+const { session } = Astro.params;
+const slidesPath = join(process.cwd(), 'src', 'slides', `${session}.html`);
+const html = readFileSync(slidesPath, 'utf-8');
+
+return new Response(html, {
+  headers: { 'Content-Type': 'text/html; charset=utf-8' },
+});
+---

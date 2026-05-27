@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Price of Tomorrow – Bitcoin District Book Club</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Georgia', serif;
+    background: #0d0d0d;
+    color: #f0ece4;
+    /* 100dvh accounts for iOS Safari toolbar; -webkit-fill-available is the fallback */
+    min-height: -webkit-fill-available;
+    height: 100dvh;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  .deck {
+    width: 100vw;
+    height: 100dvh;
+    position: relative;
+  }
+
+  .slide {
+    display: none;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0; left: 0;
+    /* clamp(min, preferred, max): shrinks gracefully on narrow screens */
+    padding: clamp(40px, 6vh, 60px) clamp(20px, 7vw, 80px) clamp(72px, 10vh, 96px);
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    /* allow long slides to scroll rather than clip */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .slide.active {
+    display: flex;
+  }
+
+  /* ─── TITLE SLIDE ─── */
+  .slide-title {
+    background: #0d0d0d;
+    align-items: center;
+    text-align: center;
+  }
+
+  .slide-title .club-name {
+    font-family: 'Arial', sans-serif;
+    font-size: clamp(0.7rem, 2.2vw, 1rem);
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: #f7931a;
+    margin-bottom: clamp(20px, 4vh, 32px);
+  }
+
+  .slide-title h1 {
+    font-size: clamp(2rem, 6.5vw, 3.8rem);
+    font-weight: normal;
+    line-height: 1.1;
+    color: #f0ece4;
+    margin-bottom: clamp(12px, 2.5vh, 20px);
+  }
+
+  .slide-title h1 em {
+    font-style: italic;
+    color: #f7931a;
+  }
+
+  .slide-title .author {
+    font-family: 'Arial', sans-serif;
+    font-size: clamp(0.95rem, 2.5vw, 1.25rem);
+    color: #a09880;
+    letter-spacing: 0.1em;
+  }
+
+  .slide-title .divider {
+    width: 80px;
+    height: 3px;
+    background: #f7931a;
+    margin: clamp(18px, 3.5vh, 28px) auto;
+  }
+
+  /* ─── DISCUSSION SLIDES ─── */
+  .slide-discussion {
+    background: #111111;
+    justify-content: flex-start;
+    padding-top: clamp(52px, 8vh, 72px);
+  }
+
+  .slide-label {
+    font-family: 'Arial', sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: #f7931a;
+    margin-bottom: clamp(20px, 3.5vh, 36px);
+    flex-shrink: 0;
+  }
+
+  .slide-discussion h2 {
+    font-size: clamp(1.05rem, 3vw, 1.6rem);
+    font-weight: normal;
+    color: #f7931a;
+    margin-bottom: clamp(14px, 2.5vh, 22px);
+    line-height: 1.3;
+    flex-shrink: 0;
+  }
+
+  .slide-discussion p {
+    font-size: clamp(0.9rem, 2.2vw, 1.15rem);
+    line-height: 1.75;
+    color: #c8c0b0;
+    max-width: min(820px, 100%);
+    margin-bottom: clamp(12px, 2vh, 20px);
+  }
+
+  .slide-discussion p strong {
+    color: #f0ece4;
+    font-weight: normal;
+  }
+
+  .discussion-question {
+    background: rgba(247, 147, 26, 0.08);
+    border-left: 3px solid #f7931a;
+    padding: clamp(12px, 2vh, 18px) clamp(14px, 3vw, 24px);
+    margin-top: 8px;
+    max-width: min(820px, 100%);
+    border-radius: 0 4px 4px 0;
+    flex-shrink: 0;
+  }
+
+  .discussion-question p {
+    font-size: clamp(0.875rem, 2.1vw, 1.1rem);
+    color: #f0ece4;
+    margin: 0;
+    font-style: italic;
+  }
+
+  /* ─── SECTION HEADER ─── */
+  .slide-section {
+    background: #0d0d0d;
+    align-items: center;
+    text-align: center;
+  }
+
+  .slide-section h2 {
+    font-size: clamp(1.8rem, 5.5vw, 3rem);
+    font-weight: normal;
+    color: #f7931a;
+    letter-spacing: 0.05em;
+    margin-bottom: 16px;
+  }
+
+  .slide-section p {
+    font-size: clamp(0.9rem, 2.2vw, 1.1rem);
+    color: #a09880;
+    font-style: italic;
+    max-width: min(640px, 100%);
+  }
+
+  .slide-section p.bio {
+    color: #c8c0b0;
+    font-style: normal;
+    line-height: 1.7;
+  }
+
+  .slide-section .divider {
+    width: 60px;
+    height: 3px;
+    background: #f7931a;
+    margin: clamp(16px, 3vh, 24px) auto;
+  }
+
+  /* ─── TRIVIA SLIDES ─── */
+  .slide-trivia {
+    background: #111111;
+    justify-content: flex-start;
+    padding-top: clamp(52px, 8vh, 72px);
+  }
+
+  .trivia-number {
+    font-family: 'Arial', sans-serif;
+    font-size: clamp(3rem, 7vw, 5rem);
+    font-weight: 700;
+    color: rgba(247, 147, 26, 0.12);
+    position: absolute;
+    top: clamp(24px, 4vh, 40px);
+    right: clamp(20px, 5vw, 80px);
+    line-height: 1;
+  }
+
+  .slide-trivia h2 {
+    font-size: clamp(1.05rem, 3vw, 1.9rem);
+    font-weight: normal;
+    color: #f0ece4;
+    max-width: min(750px, 100%);
+    line-height: 1.45;
+    margin-bottom: clamp(24px, 4vh, 48px);
+    flex-shrink: 0;
+  }
+
+  .answer-box {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 6px;
+    padding: clamp(14px, 2.5vh, 24px) clamp(16px, 3.5vw, 32px);
+    max-width: min(600px, 100%);
+    width: 100%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .answer-box:hover {
+    border-color: #f7931a;
+  }
+
+  /* Larger tap target on touch devices */
+  @media (hover: none) {
+    .answer-box:active {
+      border-color: #f7931a;
+      background: #1f1f1f;
+    }
+  }
+
+  .answer-box .answer-label {
+    font-family: 'Arial', sans-serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: #f7931a;
+    margin-bottom: 10px;
+  }
+
+  .answer-box .answer-text {
+    font-size: clamp(1rem, 2.5vw, 1.5rem);
+    color: #f0ece4;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    line-height: 1.5;
+  }
+
+  .answer-box .answer-text.revealed {
+    opacity: 1;
+  }
+
+  .answer-box .answer-hint {
+    font-family: 'Arial', sans-serif;
+    font-size: 0.75rem;
+    color: #666;
+    margin-top: 10px;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+  }
+
+  .answer-box .answer-hint.revealed {
+    opacity: 1;
+  }
+
+  .answer-box .click-prompt {
+    font-family: 'Arial', sans-serif;
+    font-size: 0.8rem;
+    color: #555;
+    font-style: italic;
+    transition: opacity 0.2s ease;
+  }
+
+  .answer-box.revealed-box .click-prompt {
+    display: none;
+  }
+
+  /* ─── NEXT BOOK SLIDE ─── */
+  .slide-next {
+    background: #0d0d0d;
+    align-items: center;
+    text-align: center;
+  }
+
+  .slide-next h2 {
+    font-family: 'Arial', sans-serif;
+    font-size: clamp(0.7rem, 2vw, 0.8rem);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: #f7931a;
+    margin-bottom: clamp(16px, 3vh, 24px);
+  }
+
+  .slide-next h1 {
+    font-size: clamp(1.8rem, 5.5vw, 3rem);
+    font-weight: normal;
+    color: #f0ece4;
+    margin-bottom: 16px;
+  }
+
+  .slide-next .divider {
+    width: 60px;
+    height: 3px;
+    background: #f7931a;
+    margin: clamp(16px, 3vh, 24px) auto;
+  }
+
+  /* ─── NAV ─── */
+  .nav {
+    position: fixed;
+    bottom: clamp(16px, 3vh, 32px);
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 16px;
+    z-index: 100;
+  }
+
+  .nav button {
+    background: rgba(247, 147, 26, 0.1);
+    border: 1px solid rgba(247, 147, 26, 0.3);
+    color: #f7931a;
+    width: clamp(48px, 8vw, 56px);
+    height: clamp(48px, 7vh, 56px);
+    border-radius: 8px;
+    font-size: clamp(1.2rem, 3vw, 1.4rem);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    /* ensure readable tap target */
+    touch-action: manipulation;
+  }
+
+  .nav button:hover {
+    background: rgba(247, 147, 26, 0.25);
+    border-color: #f7931a;
+  }
+
+  .nav button:active {
+    background: rgba(247, 147, 26, 0.35);
+  }
+
+  .nav button:disabled {
+    opacity: 0.2;
+    cursor: default;
+  }
+
+  /* progress bar hidden — slide counter already shows this */
+  .progress { display: none; }
+
+  /* ─── SLIDE COUNT ─── */
+  .slide-counter {
+    position: fixed;
+    top: clamp(12px, 2.5vh, 28px);
+    right: clamp(16px, 4vw, 48px);
+    font-family: 'Arial', sans-serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    color: #444;
+  }
+
+  /* Orange bar top */
+  .top-bar {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%;
+    height: 3px;
+    background: #f7931a;
+    z-index: 50;
+  }
+
+  /* ─── SWIPE HINT (mobile only, slide 1) ─── */
+  .swipe-hint {
+    position: fixed;
+    bottom: clamp(72px, 11vh, 96px);
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Arial', sans-serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    color: #333;
+    text-transform: uppercase;
+    white-space: nowrap;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+
+  @media (hover: hover) {
+    /* hide swipe hint on non-touch devices */
+    .swipe-hint { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="top-bar"></div>
+<div class="slide-counter" id="slideCounter"></div>
+
+<div class="deck" id="deck">
+
+  <!-- ══ SLIDE 1: TITLE ══ -->
+  <div class="slide slide-title active">
+    <div class="club-name">Bitcoin District &nbsp;·&nbsp; Book Club</div>
+    <h1><em>The Price of Tomorrow</em></h1>
+    <div class="divider"></div>
+    <div class="author">Jeff Booth</div>
+  </div>
+
+  <!-- ══ SLIDE 2: AUTHOR CONTEXT ══ -->
+  <div class="slide slide-section">
+    <h2>Jeff Booth</h2>
+    <div class="divider"></div>
+    <p class="bio">Canadian entrepreneur. Founded and led BuildDirect — a tech platform that used software to drive down the cost of building materials, eliminating layers of middlemen in the process.</p>
+    <p class="bio" style="margin-top: 1em;">His thesis came from lived experience: his own company was deflationary by design, yet inflation kept eroding the world around it. <em>The Price of Tomorrow</em> is his attempt to explain why, and what comes next.</p>
+  </div>
+
+  <!-- ══ SLIDE 3: DISCUSSION ══ -->
+  <div class="slide slide-discussion">
+    <div class="slide-label">Discussion Topics</div>
+    <h2>Icebreaker: Technology Making Things Cheaper</h2>
+    <p>
+      Booth opens the book with a striking observation about Moore's Law: the cost per
+      megabyte of storage fell from roughly <strong>$1 million in 1967</strong> to just 2 cents by the
+      time he was writing — a collapse in price of nearly ten billion times. This is
+      technology doing what it always does — driving prices toward zero.
+    </p>
+    <div class="discussion-question">
+      <p>Think of a product or service that has gotten dramatically cheaper or better
+      in your lifetime purely because of technology. How much would it cost today
+      if technology hadn't touched it — and who would own it?</p>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 4: DISCUSSION ══ -->
+  <div class="slide slide-discussion">
+    <div class="slide-label">Discussion Topics</div>
+    <h2>The Great Conflict: Deflationary Tech vs. Inflationary Money</h2>
+    <p>
+      Booth's central argument is a collision between two forces: <strong>technology naturally
+      drives prices down</strong> (deflation), while <strong>central banks target 2% inflation every
+      year</strong> — essentially cancelling out the gains that technology would have given us
+      for free.
+    </p>
+    <div class="discussion-question">
+      <p>If technology is silently giving you more purchasing power every year,
+      and inflation is silently taking it back — who actually captures the
+      productivity gains? Is inflation the largest hidden tax most people
+      don't know they're paying?</p>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 5: DISCUSSION ══ -->
+  <div class="slide slide-discussion">
+    <div class="slide-label">Discussion Topics</div>
+    <h2>The Debt Trap: Borrowing from Tomorrow</h2>
+    <p>
+      The "price of tomorrow" is what we pay by borrowing against future prosperity
+      today. Since 2000, global debt has ballooned from $62 trillion to over
+      <strong>$247 trillion</strong> — yet that $185 trillion in new debt bought only $46 trillion
+      of real economic growth. If you paid it back at $1,000 per second,
+      it would take nearly 8,000 years.
+    </p>
+    <div class="discussion-question">
+      <p>Booth says we have no painless exit from this debt trap — either we inflate
+      it away (destroying savings) or we face a deflationary collapse.
+      Is Bitcoin a third option, or does adopting a Bitcoin standard just
+      make the reckoning arrive sooner?</p>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 6: DISCUSSION ══ -->
+  <div class="slide slide-discussion">
+    <div class="slide-label">Discussion Topics</div>
+    <h2>AI, Automation, and the Ownership Problem</h2>
+    <p>
+      Booth asks whether AI will eliminate far more jobs than it creates — and unlike
+      past industrial revolutions, <strong>cognitive work may not be safe</strong>: "If every job
+      is a function of our intelligence, as computers beat us at intelligence,
+      how could any job be safe?" If AI is owned by corporations or governments,
+      the gains accrue to very few.
+    </p>
+    <div class="discussion-question">
+      <p>If AI compresses wages toward zero for most cognitive work,
+      <em>who owns the AI</em> becomes the defining question of our era.
+      Does holding Bitcoin — a form of capital with a fixed supply — offer
+      ordinary people a seat at the table in an AI-driven economy?</p>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 7: DISCUSSION ══ -->
+  <div class="slide slide-discussion">
+    <div class="slide-label">Discussion Topics</div>
+    <h2>Bitcoin: Money Aligned with Technology</h2>
+    <p>
+      Booth frames Bitcoin as <strong>"an attempt at a solution"</strong> — a system with a
+      fixed supply of 21 million coins that cannot be manipulated by governments.
+      In a deflationary world, fixed-supply money means prices fall and purchasing
+      power rises: you keep the gains from technology instead of watching
+      them confiscated by inflation.
+    </p>
+    <div class="discussion-question">
+      <p>Booth says under a Bitcoin standard, your savings would naturally
+      appreciate as technology improves — no investing required,
+      just holding. Would this change how people think about work,
+      risk, and time? Or does falling prices create their own trap
+      (why spend today what will be worth more tomorrow)?</p>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 8: DISCUSSION ══ -->
+  <div class="slide slide-discussion">
+    <div class="slide-label">Discussion Topics</div>
+    <h2>Cooperation vs. Competition in a World of Abundance</h2>
+    <p>
+      Booth closes the book with a game-theory argument: currency debasement is a
+      <strong>prisoner's dilemma</strong> — each nation defects for short-term gain, triggering
+      retaliation, until everyone loses. In a world of genuine technological abundance,
+      this zero-sum thinking is irrational and destructive.
+    </p>
+    <div class="discussion-question">
+      <p>Booth argues a Bitcoin standard would remove the temptation to defect —
+      you can't print your way to advantage, so nations must compete by
+      actually creating value. Is this optimistic or naive?
+      Can nation-states genuinely choose cooperation,
+      or does power always revert to zero-sum competition?</p>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 9: TRIVIA HEADER ══ -->
+  <div class="slide slide-section">
+    <h2>Trivia</h2>
+    <div class="divider"></div>
+    <p>Tap or click the answer box to reveal each answer</p>
+  </div>
+
+  <!-- ══ SLIDES 10–19: TRIVIA ══ -->
+
+  <div class="slide slide-trivia">
+    <div class="trivia-number">1</div>
+    <div class="slide-label">Trivia</div>
+    <h2>According to Booth, what does technology <em>always</em> do to prices over time?</h2>
+    <div class="answer-box" onclick="revealAnswer(this)">
+      <div class="answer-label">Answer</div>
+      <div class="answer-text">Drives them down — technology is inherently deflationary</div>
+      <div class="answer-hint">*Introduction: The End of Inflation</div>
+      <div class="click-prompt">Tap to reveal →</div>
+    </div>
+  </div>
+
+  <div class="slide slide-trivia">
+    <div class="trivia-number">2</div>
+    <div class="slide-label">Trivia</div>
+    <h2>Since 2000, global debt grew from $62 trillion to over $247 trillion. According to Booth, how much new debt was created to achieve just $46 trillion of economic growth?</h2>
+    <div class="answer-box" onclick="revealAnswer(this)">
+      <div class="answer-label">Answer</div>
+      <div class="answer-text">Approximately $185 trillion of new debt</div>
+      <div class="answer-hint">*Introduction: The End of Inflation (Institute of International Finance, Q3 2018)</div>
+      <div class="click-prompt">Tap to reveal →</div>
+    </div>
+  </div>
+
+  <div class="slide slide-trivia">
+    <div class="trivia-number">3</div>
+    <div class="slide-label">Trivia</div>
+    <h2>What inflation target do most central banks around the world aim for each year?</h2>
+    <div class="answer-box" onclick="revealAnswer(this)">
+      <div class="answer-label">Answer</div>
+      <div class="answer-text">2%</div>
+      <div class="answer-hint">*Introduction: The End of Inflation</div>
+      <div class="click-prompt">Tap to reveal →</div>
+    </div>
+  </div>
+
+  <div class="slide slide-trivia">
+    <div class="trivia-number">4</div>
+    <div class="slide-label">Trivia</div>
+    <h2>Moore's Law is used by Booth as a key example of technological deflation. What does Moore's Law describe?</h2>
+    <div class="answer-box" onclick="revealAnswer(this)">
+      <div class="answer-label">Answer</div>
+      <div class="answer-text">The number of transistors on a circuit board doubles approximately every two years. Moore's original 1965 prediction was every year; he later revised it to every two years. In practice, the doubling has occurred approximately every eighteen months.</div>
+      <div class="answer-hint">*Chapter 4 – The Technology Boom</div>
+      <div class="click-prompt">Tap to reveal →</div>
+    </div>
+  </div>
+
+  <div class="slide slide-trivia">
+    <div class="trivia-number">5</div>
+    <div class="slide-label">Trivia</div>
+    <h2>What specific technology does Booth identify as the primary driver of the <em>next</em> wave of deflationary disruption?</h2>
+    <div class="answer-box" onclick="revealAnswer(this)">
+      <div class="answer-label">Answer</div>
+      <div class="answer-text">Artificial Intelligence (AI)</div>
+      <div class="answer-hint">*Chapter 6 – The Future of Intelligence</div>
+      <div class="click-prompt">Tap to reveal →</div>
+    </div>
+  </div>
+
+  <div class="slide slide-trivia">
+    <div class="trivia-number">6</div>
+    <div class="slide-label">Trivia</div>
+    <h2>In Chapter 4, Booth illustrates Moore's Law with a storage cost example. One megabyte of storage cost roughly $1 million in 1967. What had it fallen to by the time he was writing the book?</h2>
+    <div class="answer-box" onclick="revealAnswer(this)">
+      <div class="answer-label">Answer</div>
+      <div class="answer-text">About 2 cents — a price collapse of nearly ten billion times</div>
+      <div class="answer-hint">*Chapter 4 – The Technology Boom</div>
+      <div class="click-prompt">Tap to reveal →</div>
+    </div>
+  </div>
+
+  <div class="slide slide-trivia">
+    <div class="trivia-number">7</div>
+    <div class="slide-label">Trivia</div>
+    <h2>Booth argues that in the current system, the gains from AI and automation flow primarily to whom?</h2>
+    <div class="answer-box" onclick="revealAnswer(this)">
+      <div class="answer-label">Answer</div>
+      <div class="answer-text">Those who own the technology and assets — "If AI is owned by corporations or governments, then the benefits will accrue to very few"</div>
+      <div class="answer-hint">*Chapter 7 – The Future of Work</div>
+      <div class="click-prompt">Tap to reveal →</div>
+    </div>
+  </div>
+
+  <div class="slide slide-trivia">
+    <div class="trivia-number">8</div>
+    <div class="slide-label">Trivia</div>
+    <h2>What does Booth say happens to debt in a deflationary environment?</h2>
+    <div class="answer-box" onclick="revealAnswer(this)">
+      <div class="answer-label">Answer</div>
+      <div class="answer-text">It becomes harder to repay — the real value of debt increases as prices fall, making it potentially unpayable</div>
+      <div class="answer-hint">*Chapter 1 – Printing Money / Introduction</div>
+      <div class="click-prompt">Tap to reveal →</div>
+    </div>
+  </div>
+
+  <div class="slide slide-trivia">
+    <div class="trivia-number">9</div>
+    <div class="slide-label">Trivia</div>
+    <h2>In Chapter 9, Booth uses a concept from game theory to argue that currency debasement is self-defeating. What is this concept called?</h2>
+    <div class="answer-box" onclick="revealAnswer(this)">
+      <div class="answer-label">Answer</div>
+      <div class="answer-text">The prisoner's dilemma — nations that defect (debase their currency) gain short-term advantage but trigger retaliation, leaving everyone worse off than if they had cooperated</div>
+      <div class="answer-hint">*Chapter 9 – Can We Cooperate?</div>
+      <div class="click-prompt">Tap to reveal →</div>
+    </div>
+  </div>
+
+  <div class="slide slide-trivia">
+    <div class="trivia-number">10</div>
+    <div class="slide-label">Trivia</div>
+    <h2>In what year was <em>The Price of Tomorrow</em> published?</h2>
+    <div class="answer-box" onclick="revealAnswer(this)">
+      <div class="answer-label">Answer</div>
+      <div class="answer-text">2020</div>
+      <div class="answer-hint">*Published January 14, 2020</div>
+      <div class="click-prompt">Tap to reveal →</div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 20: NEXT BOOK ══ -->
+  <div class="slide slide-next">
+    <h2>Next Book Club</h2>
+    <h1>?</h1>
+    <div class="divider"></div>
+  </div>
+
+</div>
+
+<!-- ─── NAV ─── -->
+<div class="nav">
+  <button id="prevBtn" onclick="navigate(-1)" disabled>&#8592;</button>
+  <button id="nextBtn" onclick="navigate(1)">&#8594;</button>
+</div>
+<div class="progress" id="progress"></div>
+<div class="swipe-hint" id="swipeHint">swipe to navigate</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  let current = 0;
+
+  function showSlide(n) {
+    slides[current].classList.remove('active');
+    // scroll slide back to top when leaving
+    slides[current].scrollTop = 0;
+    current = Math.max(0, Math.min(n, slides.length - 1));
+    slides[current].classList.add('active');
+    document.getElementById('prevBtn').disabled = current === 0;
+    document.getElementById('nextBtn').disabled = current === slides.length - 1;
+    document.getElementById('slideCounter').textContent = (current + 1) + ' / ' + slides.length;
+    // hide swipe hint after first navigation
+    if (n !== 0) {
+      const hint = document.getElementById('swipeHint');
+      if (hint) hint.style.opacity = '0';
+    }
+  }
+
+  function navigate(dir) {
+    showSlide(current + dir);
+  }
+
+  function revealAnswer(box) {
+    box.classList.add('revealed-box');
+    box.querySelector('.answer-text').classList.add('revealed');
+    const hint = box.querySelector('.answer-hint');
+    if (hint) hint.classList.add('revealed');
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') navigate(1);
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') navigate(-1);
+  });
+
+  // Touch/swipe — only fires when horizontal motion dominates vertical
+  let touchStartX = 0;
+  let touchStartY = 0;
+  document.addEventListener('touchstart', e => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+  document.addEventListener('touchend', e => {
+    const diffX = touchStartX - e.changedTouches[0].clientX;
+    const diffY = touchStartY - e.changedTouches[0].clientY;
+    // require horizontal motion to dominate and exceed threshold
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
+      navigate(diffX > 0 ? 1 : -1);
+    }
+  }, { passive: true });
+
+  showSlide(0);
+</script>
+</body>
+</html>
