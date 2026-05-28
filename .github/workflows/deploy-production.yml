@@ -332,10 +332,11 @@ jobs:
           cd ${{ env.DEPLOY_PATH }}
           
           echo "Pulling latest Docker images..."
-          docker compose -f docker-compose.prod.yml pull
+          docker compose -f docker-compose.prod.yml pull db cache directus caddy
           
-          echo "Building and starting containers (including Caddy)..."
-          docker compose -f docker-compose.prod.yml up -d --build --force-recreate --remove-orphans
+          echo "Building and starting BD containers..."
+          docker compose -f docker-compose.prod.yml up -d --build --force-recreate --no-deps astro
+          docker compose -f docker-compose.prod.yml up -d --no-deps db cache directus caddy
           
           echo "Waiting for services to be healthy..."
           sleep 15
@@ -440,6 +441,14 @@ jobs:
               sleep $RETRY_DELAY
             fi
           done
+          
+          # Check BDI site (non-blocking — may not have DNS configured yet)
+          echo "Testing BDI site (non-blocking)..."
+          if check_url "https://bitcoindistrictinitiative.org/" "BDI site"; then
+            echo "✅ BDI site is live"
+          else
+            echo "⚠️  BDI site not reachable (DNS may not be configured yet)"
+          fi
 
       - name: Clean up SSH keys
         if: always()
@@ -451,6 +460,7 @@ jobs:
         run: |
           echo "✅ Deployment completed successfully!"
           echo "🌐 Main site: https://bitcoindistrict.org"
+          echo "🌐 BDI site: https://bitcoindistrictinitiative.org"
           echo "⚙️  Admin panel: https://cms.bitcoindistrict.org"
           echo "📝 Commit: ${{ github.sha }}"
           echo "👤 Deployed by: ${{ github.actor }}"
@@ -468,3 +478,4 @@ jobs:
           echo "You can manually check the server with:"
           echo "ssh deploy@${{ secrets.PRODUCTION_HOST }}"
           exit 1
+

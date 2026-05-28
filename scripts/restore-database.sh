@@ -246,7 +246,7 @@ if [ "$DB_ONLY" = false ]; then
                 exit 1
             fi
             # Create directory via Docker (runs as root in container)
-            docker run --rm -v "$PARENT_DIR:/mnt" alpine sh -c "mkdir -p /mnt/$(basename $UPLOADS_DIR) && chown 999:999 /mnt/$(basename $UPLOADS_DIR)" 2>/dev/null || true
+            docker run --rm -v "$PARENT_DIR:/mnt" alpine sh -c "mkdir -p /mnt/$(basename $UPLOADS_DIR) && chown 1000:1000 /mnt/$(basename $UPLOADS_DIR)" 2>/dev/null || true
         fi
 
         # Convert BACKUP_DIR to absolute path for Docker volume mount
@@ -259,7 +259,7 @@ if [ "$DB_ONLY" = false ]; then
         docker run --rm \
             -v "${ABS_UPLOADS_DIR}:/uploads" \
             -v "${ABS_BACKUP_DIR}:/backup:ro" \
-            alpine sh -c "rm -rf /uploads/* && tar xzf /backup/directus-uploads-${BACKUP_TIMESTAMP}.tar.gz -C /uploads && chown -R 999:999 /uploads && chmod -R 755 /uploads"
+            alpine sh -c "rm -rf /uploads/* && tar xzf /backup/directus-uploads-${BACKUP_TIMESTAMP}.tar.gz -C /uploads && chown -R 1000:1000 /uploads && chmod -R 755 /uploads"
 
         EXTRACT_RESULT=$?
         if [ $EXTRACT_RESULT -ne 0 ]; then

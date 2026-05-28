@@ -1,0 +1,158 @@
+---
+export interface Filter {
+  id: string;
+  label: string;
+  value: string | null;
+}
+
+export interface Props {
+  filters: Filter[];
+  defaultFilter?: string;
+  filterTarget?: string;
+  class?: string;
+}
+
+const {
+  filters,
+  defaultFilter = "all",
+  filterTarget = "[data-filter-item]",
+  class: className = "",
+} = Astro.props;
+---
+
+<div class={`filter-buttons-container ${className}`}>
+  <div class="filter-buttons-wrapper">
+    <div class="filter-buttons" role="group" aria-label="Filter news content">
+      {filters.map((filter) => (
+        <button
+          type="button"
+          data-filter-button={filter.id}
+          data-filter-value={filter.value || "all"}
+          aria-pressed={filter.id === defaultFilter ? "true" : "false"}
+          class={`filter-button ${filter.id === defaultFilter ? "active" : ""}`}
+        >
+          <span class="filter-label">{filter.label}</span>
+        </button>
+      ))}
+    </div>
+  </div>
+</div>
+
+<style>
+  .filter-buttons-container {
+    width: 100%;
+    padding: 1.25rem 0 1.5rem;
+  }
+
+  .filter-buttons-wrapper {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+    display: flex;
+    justify-content: center;
+  }
+
+  .filter-buttons {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.35rem;
+    border-radius: 999px;
+    background: #f6f7fb;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    width: fit-content;
+  }
+
+  .filter-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.6rem 1rem;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: rgba(0, 0, 0, 0.7);
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.92rem;
+    min-height: 40px;
+    transition: background-color 160ms ease, color 160ms ease, transform 120ms ease;
+  }
+
+  .filter-button:hover:not(.active) {
+    background: rgba(0, 0, 0, 0.05);
+    color: rgba(0, 0, 0, 0.9);
+  }
+
+  .filter-button:focus-visible {
+    outline: 2px solid #0e0535;
+    outline-offset: 2px;
+  }
+
+  .filter-button.active {
+    background: #0e0535;
+    color: #fff;
+  }
+
+  .filter-label {
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 768px) {
+    .filter-buttons-wrapper {
+      justify-content: stretch;
+      padding: 0 0.75rem;
+    }
+
+    .filter-buttons {
+      width: 100%;
+      justify-content: space-between;
+      gap: 0.25rem;
+    }
+
+    .filter-button {
+      flex: 1;
+      padding: 0.55rem 0.5rem;
+      font-size: 0.8rem;
+    }
+  }
+</style>
+
+<script define:vars={{ filterTarget }}>
+  function initFilterButtons() {
+    const filterButtons = document.querySelectorAll("[data-filter-button]");
+
+    filterButtons.forEach((button) => {
+      if (button.dataset.filterInitialized === "true") return;
+      button.dataset.filterInitialized = "true";
+
+      button.addEventListener("click", () => {
+        const filterValue = button.dataset.filterValue;
+        if (!filterValue) return;
+
+        filterButtons.forEach((btn) => {
+          btn.classList.remove("active");
+          btn.setAttribute("aria-pressed", "false");
+        });
+        button.classList.add("active");
+        button.setAttribute("aria-pressed", "true");
+
+        const items = document.querySelectorAll(filterTarget);
+        items.forEach((item) => {
+          const itemType = item.getAttribute("data-filter-type") ?? "";
+          const shouldShow = filterValue === "all" || itemType === filterValue;
+          if (item instanceof HTMLElement) {
+            item.style.display = shouldShow ? "" : "none";
+          }
+        });
+      });
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initFilterButtons);
+  } else {
+    initFilterButtons();
+  }
+  document.addEventListener("astro:page-load", initFilterButtons);
+</script>

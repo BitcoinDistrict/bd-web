@@ -50,7 +50,7 @@ export const siteConfig = {
       { label: "Meetups", href: "/meetups" },
       { label: "Podcast", href: "/podcast" },
       { label: "Nostr", href: "/nostr" },
-      { label: "News", href: "https://news.bitcoindistrict.org" },
+      { label: "News", href: "/news" },
     ] satisfies SiteNavItem[],
     footer: [
       { label: "Home", href: "/" },
@@ -66,23 +66,24 @@ export const siteConfig = {
     { ariaLabel: 'X', icon: 'tabler:brand-x', href: 'https://x.com/BTCDistrict' },
     { ariaLabel: 'Nostr', icon: 'nostr', href: 'https://primal.net/p/npub1mcke7stw5mrqp97lmdu0qdrfcz2uertdsy2n9pzvfnsdutx3hvkq7d5mnw' },
     { ariaLabel: 'Github', icon: 'tabler:brand-github', href: 'https://github.com/BitcoinDistrict' },
+    { ariaLabel: 'RSS Feed', icon: 'tabler:rss', href: '/feeds' },
   ] satisfies SocialLink[],
   footerData: {
     links: [
       {
         title: 'Meetups 🤝',
         links: [
-          { text: 'Bitcoin District', href: 'https://www.meetup.com/bitcoin-district/' },
-          { text: 'DC BitDevs', href: 'https://www.meetup.com/dc-bit-devs/' },
-          { text: 'Shenandoah Bitcoin Club', href: 'https://www.meetup.com/shenandoah-bitcoin-club/' },
-          { text: 'Southern Maryland Bitcoiners', href: 'https://www.meetup.com/southern-maryland-bitcoiners/' },
+          { text: 'Bitcoin District', href: 'https://meetup.com/bitcoin-district/' },
+          { text: 'DC BitDevs', href: 'https://meetup.com/dc-bit-devs/' },
+          { text: 'Shenandoah Bitcoin Club', href: 'https://meetup.com/shenandoah-bitcoin-club/' },
+          { text: 'Southern Maryland Bitcoiners', href: 'https://meetup.com/southern-maryland-bitcoiners/' },
         ],
       },
       {
         title: 'Friends 🤗',
         links: [
-          { text: 'Bitcoin District Initiative', href: 'https://www.bitcoindistrictinitiative.org/' },
-          { text: 'Bitcoin Policy Institute', href: 'https://www.btcpolicy.org/' },
+          { text: 'Bitcoin District Initiative', href: 'https://bitcoindistrictinitiative.org/' },
+          { text: 'Bitcoin Policy Institute', href: 'https://btcpolicy.org/' },
           { text: 'PubKey DC', href: 'https://pubkey.com/dc' },
           { text: 'Strategy Hub', href: 'https://strategy.com/hub' },
         ],

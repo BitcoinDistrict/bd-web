@@ -56,7 +56,7 @@ services:
       ADMIN_PASSWORD: ${DIRECTUS_ADMIN_PASSWORD}
       PUBLIC_URL: "https://cms.bitcoindistrict.org"
       CORS_ENABLED: "true"
-      CORS_ORIGIN: "https://bitcoindistrict.org"
+      CORS_ORIGIN: "https://bitcoindistrict.org,https://bitcoindistrictinitiative.org"
       CACHE_ENABLED: "true"
       CACHE_STORE: "redis"
       REDIS: "redis://cache:6379"
@@ -125,6 +125,52 @@ services:
       DIRECTUS_STATIC_TOKEN: ${DIRECTUS_STATIC_TOKEN:-}
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:4321', (r) => {if (r.statusCode >= 200 && r.statusCode < 500) process.exit(0); else process.exit(1);}).on('error', () => process.exit(1));\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      directus:
+        condition: service_started
+    networks:
+      - bd-network
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  bdi-astro:
+    build:
+      context: /home/deploy/bdi-web
+      dockerfile: Dockerfile
+      target: production
+      args:
+        PUBLIC_DIRECTUS_URL: ${PUBLIC_DIRECTUS_URL}
+        DIRECTUS_URL: http://directus:8055
+        DIRECTUS_STATIC_TOKEN: ${DIRECTUS_STATIC_TOKEN}
+        PUBLIC_SITE_URL: https://bitcoindistrictinitiative.org
+    ports:
+      - "127.0.0.1:4322:4322"
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 4322
+      DIRECTUS_URL: http://directus:8055
+      PUBLIC_DIRECTUS_URL: https://cms.bitcoindistrict.org
+      DIRECTUS_STATIC_TOKEN: ${DIRECTUS_STATIC_TOKEN:-}
+      PUBLIC_SITE_URL: https://bitcoindistrictinitiative.org
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:4322', (r) => {if (r.statusCode >= 200 && r.statusCode < 500) process.exit(0); else process.exit(1);}).on('error', () => process.exit(1));\""]
       interval: 10s
       timeout: 5s
       retries: 5
