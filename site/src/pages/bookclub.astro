@@ -2,14 +2,9 @@
 import Layout from "../layouts/Layout.astro";
 import PageHeader from "../components/PageHeader.astro";
 import { getBooks, getDirectusUrl, type Book } from "../lib/directus";
-import { readdirSync } from 'node:fs';
-import { join } from 'node:path';
-
-const slidesDir = join(process.cwd(), 'src', 'slides');
+const slideModules = import.meta.glob('../slides/*.html');
 const slideIds = new Set(
-  readdirSync(slidesDir)
-    .filter(f => f.endsWith('.html'))
-    .map(f => f.replace('.html', ''))
+  Object.keys(slideModules).map(p => p.replace('../slides/', '').replace('.html', ''))
 );
 
 // Prevent caching to ensure fresh data from Directus
