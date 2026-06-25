@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Deficit Myth – Bitcoin District Book Club</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Georgia', serif;
+    background: #0d0d0d;
+    color: #f0ece4;
+    min-height: -webkit-fill-available;
+    height: 100dvh;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  .deck {
+    width: 100vw;
+    height: 100dvh;
+    position: relative;
+  }
+
+  .slide {
+    display: none;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0; left: 0;
+    padding: clamp(40px, 6vh, 60px) clamp(20px, 7vw, 80px) clamp(72px, 10vh, 96px);
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .slide.active {
+    display: flex;
+  }
+
+  /* ─── TITLE SLIDE ─── */
+  .slide-title {
+    background: #0d0d0d;
+    align-items: center;
+    text-align: center;
+  }
+
+  .slide-title .club-name {
+    font-family: 'Arial', sans-serif;
+    font-size: clamp(0.7rem, 2.2vw, 1rem);
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: #f7931a;
+    margin-bottom: clamp(20px, 4vh, 32px);
+  }
+
+  .slide-title h1 {
+    font-size: clamp(2rem, 6.5vw, 3.8rem);
+    font-weight: normal;
+    line-height: 1.1;
+    color: #f0ece4;
+    margin-bottom: clamp(12px, 2.5vh, 20px);
+  }
+
+  .slide-title h1 em {
+    font-style: italic;
+    color: #f7931a;
+  }
+
+  .slide-title .author {
+    font-family: 'Arial', sans-serif;
+    font-size: clamp(0.95rem, 2.5vw, 1.25rem);
+    color: #a09880;
+    letter-spacing: 0.1em;
+  }
+
+  .slide-title .divider {
+    width: 80px;
+    height: 3px;
+    background: #f7931a;
+    margin: clamp(18px, 3.5vh, 28px) auto;
+  }
+
+  /* ─── DISCUSSION SLIDES ─── */
+  .slide-discussion {
+    background: #111111;
+    justify-content: flex-start;
+    padding-top: clamp(52px, 8vh, 72px);
+  }
+
+  .slide-label {
+    font-family: 'Arial', sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: #f7931a;
+    margin-bottom: clamp(20px, 3.5vh, 36px);
+    flex-shrink: 0;
+  }
+
+  .slide-discussion h2 {
+    font-size: clamp(1.05rem, 3vw, 1.6rem);
+    font-weight: normal;
+    color: #f7931a;
+    margin-bottom: clamp(14px, 2.5vh, 22px);
+    line-height: 1.3;
+    flex-shrink: 0;
+  }
+
+  .slide-discussion p {
+    font-size: clamp(0.9rem, 2.2vw, 1.15rem);
+    line-height: 1.75;
+    color: #c8c0b0;
+    max-width: min(820px, 100%);
+    margin-bottom: clamp(12px, 2vh, 20px);
+  }
+
+  .slide-discussion p strong {
+    color: #f0ece4;
+    font-weight: normal;
+  }
+
+  .discussion-question {
+    background: rgba(247, 147, 26, 0.08);
+    border-left: 3px solid #f7931a;
+    padding: clamp(12px, 2vh, 18px) clamp(14px, 3vw, 24px);
+    margin-top: 8px;
+    max-width: min(820px, 100%);
+    border-radius: 0 4px 4px 0;
+    flex-shrink: 0;
+  }
+
+  .discussion-question p {
+    font-size: clamp(0.875rem, 2.1vw, 1.1rem);
+    color: #f0ece4;
+    margin: 0;
+    font-style: italic;
+  }
+
+  /* ─── SECTION HEADER ─── */
+  .slide-section {
+    background: #0d0d0d;
+    align-items: center;
+    text-align: center;
+  }
+
+  .slide-section h2 {
+    font-size: clamp(1.8rem, 5.5vw, 3rem);
+    font-weight: normal;
+    color: #f7931a;
+    letter-spacing: 0.05em;
+    margin-bottom: 16px;
+  }
+
+  .slide-section p {
+    font-size: clamp(0.9rem, 2.2vw, 1.1rem);
+    color: #a09880;
+    font-style: italic;
+    max-width: min(640px, 100%);
+  }
+
+  .slide-section p.bio {
+    color: #c8c0b0;
+    font-style: normal;
+    line-height: 1.7;
+  }
+
+  .slide-section .divider {
+    width: 60px;
+    height: 3px;
+    background: #f7931a;
+    margin: clamp(16px, 3vh, 24px) auto;
+  }
+
+  /* ─── TRIVIA SLIDES ─── */
+  .slide-trivia {
+    background: #111111;
+    justify-content: flex-start;
+    padding-top: clamp(52px, 8vh, 72px);
+  }
+
+  .trivia-number {
+    font-family: 'Arial', sans-serif;
+    font-size: clamp(3rem, 7vw, 5rem);
+    font-weight: 700;
+    color: rgba(247, 147, 26, 0.12);
+    position: absolute;
+    top: clamp(24px, 4vh, 40px);
+    right: clamp(20px, 5vw, 80px);
+    line-height: 1;
+  }
+
+  .slide-trivia h2 {
+    font-size: clamp(1.05rem, 3vw, 1.9rem);
+    font-weight: normal;
+    color: #f0ece4;
+    max-width: min(750px, 100%);
+    line-height: 1.45;
+    margin-bottom: clamp(24px, 4vh, 48px);
+    flex-shrink: 0;
+  }
+
+  .answer-box {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 6px;
+    padding: clamp(14px, 2.5vh, 24px) clamp(16px, 3.5vw, 32px);
+    max-width: min(600px, 100%);
+    width: 100%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .answer-box:hover {
+    border-color: #f7931a;
+  }
+
+  @media (hover: none) {
+    .answer-box:active {
+      border-color: #f7931a;
+      background: #1f1f1f;
+    }
+  }
+
+  .answer-box .answer-label {
+    font-family: 'Arial', sans-serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: #f7931a;
+    margin-bottom: 10px;
+  }
+
+  .answer-box .answer-text {
+    font-size: clamp(1rem, 2.5vw, 1.5rem);
+    color: #f0ece4;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    line-height: 1.5;
+  }
+
+  .answer-box .answer-text.revealed {
+    opacity: 1;
+  }
+
+  .answer-box .answer-hint {
+    font-family: 'Arial', sans-serif;
+    font-size: 0.75rem;
+    color: #666;
+    margin-top: 10px;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+  }
+
+  .answer-box .answer-hint.revealed {
+    opacity: 1;
+  }
+
+  .answer-box .click-prompt {
+    font-family: 'Arial', sans-serif;
+    font-size: 0.8rem;
+    color: #555;
+    font-style: italic;
+    transition: opacity 0.2s ease;
+  }
+
+  .answer-box.revealed-box .click-prompt {
+    display: none;
+  }
+
+  /* ─── NEXT BOOK SLIDE ─── */
+  .slide-next {
+    background: #0d0d0d;
+    align-items: center;
+    text-align: center;
+  }
+
+  .slide-next h2 {
+    font-family: 'Arial', sans-serif;
+    font-size: clamp(0.7rem, 2vw, 0.8rem);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: #f7931a;
+    margin-bottom: clamp(16px, 3vh, 24px);
+  }
+
+  .slide-next h1 {
+    font-size: clamp(1.8rem, 5.5vw, 3rem);
+    font-weight: normal;
+    color: #f0ece4;
+    margin-bottom: 16px;
+  }
+
+  .slide-next .divider {
+    width: 60px;
+    height: 3px;
+    background: #f7931a;
+    margin: clamp(16px, 3vh, 24px) auto;
+  }
+
+  /* ─── OVERVIEW LIST ─── */
+  .overview-list {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(10px, 1.8vh, 18px);
+    max-width: min(820px, 100%);
+    margin-top: 4px;
+    flex-shrink: 0;
+  }
+
+  .overview-item {
+    display: flex;
+    gap: clamp(12px, 2.5vw, 24px);
+    align-items: baseline;
+  }
+
+  .overview-item .ov-label {
+    font-family: 'Arial', sans-serif;
+    font-size: clamp(0.65rem, 1.5vw, 0.8rem);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #f7931a;
+    min-width: clamp(72px, 11vw, 110px);
+    flex-shrink: 0;
+    padding-top: 2px;
+  }
+
+  .overview-item .ov-desc {
+    font-size: clamp(0.88rem, 2vw, 1.08rem);
+    line-height: 1.6;
+    color: #c8c0b0;
+  }
+
+  .overview-item .ov-desc strong {
+    color: #f0ece4;
+    font-weight: normal;
+  }
+
+  .overview-item .ov-desc em {
+    color: #a09880;
+    font-style: italic;
+  }
+
+  /* ─── NAV ─── */
+  .nav {
+    position: fixed;
+    bottom: clamp(16px, 3vh, 32px);
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 16px;
+    z-index: 100;
+  }
+
+  .nav button {
+    background: rgba(247, 147, 26, 0.1);
+    border: 1px solid rgba(247, 147, 26, 0.3);
+    color: #f7931a;
+    width: clamp(48px, 8vw, 56px);
+    height: clamp(48px, 7vh, 56px);
+    border-radius: 8px;
+    font-size: clamp(1.2rem, 3vw, 1.4rem);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    touch-action: manipulation;
+  }
+
+  .nav button:hover {
+    background: rgba(247, 147, 26, 0.25);
+    border-color: #f7931a;
+  }
+
+  .nav button:active {
+    background: rgba(247, 147, 26, 0.35);
+  }
+
+  .nav button:disabled {
+    opacity: 0.2;
+    cursor: default;
+  }
+
+  .progress { display: none; }
+
+  /* ─── SLIDE COUNT ─── */
+  .slide-counter {
+    position: fixed;
+    top: clamp(12px, 2.5vh, 28px);
+    right: clamp(16px, 4vw, 48px);
+    font-family: 'Arial', sans-serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    color: #444;
+  }
+
+  .top-bar {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%;
+    height: 3px;
+    background: #f7931a;
+    z-index: 50;
+  }
+
+  /* ─── SWIPE HINT (mobile only, slide 1) ─── */
+  .swipe-hint {
+    position: fixed;
+    bottom: clamp(72px, 11vh, 96px);
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Arial', sans-serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    color: #333;
+    text-transform: uppercase;
+    white-space: nowrap;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+
+  @media (hover: hover) {
+    .swipe-hint { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="top-bar"></div>
+<div class="slide-counter" id="slideCounter"></div>
+
+<div class="deck" id="deck">
+
+  <!-- ══ SLIDE 1: TITLE ══ -->
+  <div class="slide slide-title active">
+    <div class="club-name">Bitcoin District &nbsp;·&nbsp; Book Club</div>
+    <h1><em>The Deficit Myth</em></h1>
+    <div class="divider"></div>
+    <div class="author">Stephanie Kelton</div>
+  </div>
+
+  <!-- ══ SLIDE 2: AUTHOR ══ -->
+  <div class="slide slide-section">
+    <h2>Stephanie Kelton</h2>
+    <div class="divider"></div>
+    <p class="bio">Economist, professor at Stony Brook University, and one of the leading voices of Modern Monetary Theory. Former chief economist for the Democrats on the US Senate Budget Committee (2015) and economic adviser to Bernie Sanders's 2016 and 2020 presidential campaigns.</p>
+    <p class="bio" style="margin-top: 1em;">Published in 2020, <em>The Deficit Myth</em> argues that everything politicians and the media say about government deficits is wrong in a fundamental, categorical way — and that accepting the myths has cost Americans trillions in foregone prosperity.</p>
+  </div>
+
+  <!-- ══ SLIDE 3: OVERVIEW — THE CORE INSIGHT ══ -->
+  <div class="slide slide-discussion">
+    <div class="slide-label">Overview</div>
+    <h2>The Core Insight: Issuer vs. User</h2>
+    <p>The US federal government is the <strong>monopoly issuer</strong> of the US dollar. Everyone else — households, businesses, states, foreign nations — is merely a <strong>currency user</strong>. This single distinction overturns nearly everything conventional economics says about deficits.</p>
+    <div class="overview-list">
+      <div class="overview-item">
+        <div class="ov-label">Currency User</div>
+        <div class="ov-desc"><strong>You, states, Greece.</strong> Must earn or borrow before spending. Can run out of money. Debt is a real liability.</div>
+      </div>
+      <div class="overview-item">
+        <div class="ov-label">Currency Issuer</div>
+        <div class="ov-desc"><strong>The US federal government.</strong> Spends first — taxes and borrowing follow. Can never run out of dollars. "Debt" is just savings in a different form.</div>
+      </div>
+      <div class="overview-item">
+        <div class="ov-label">(TAB)S myth</div>
+        <div class="ov-desc"><em>Tax And Borrow before Spending</em> — the conventional story. Households must do this. The federal government does not.</div>
+      </div>
+      <div class="overview-item">
+        <div class="ov-label">S(TAB) reality</div>
+        <div class="ov-desc"><em>Spend first — Taxing and Borrowing follow.</em> The currency issuer credits bank accounts; the constraint is inflation, not money.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 4: OVERVIEW — THE SIX MYTHS ══ -->
+  <div class="slide slide-discussion">
+    <div class="slide-label">Overview</div>
+    <h2>The Six Myths</h2>
+    <div class="overview-list">
+      <div class="overview-item">
+        <div class="ov-label">Myth 1</div>
+        <div class="ov-desc"><strong>"Budget like a household."</strong> <em>Reality: the government issues the currency it spends.</em></div>
+      </div>
+      <div class="overview-item">
+        <div class="ov-label">Myth 2</div>
+        <div class="ov-desc"><strong>"Deficits mean overspending."</strong> <em>Reality: overspending shows up as inflation, not a deficit.</em></div>
+      </div>
+      <div class="overview-item">
+        <div class="ov-label">Myth 3</div>
+        <div class="ov-desc"><strong>"The debt burdens our children."</strong> <em>Reality: the national debt is national savings in a different form.</em></div>
+      </div>
+      <div class="overview-item">
+        <div class="ov-label">Myth 4</div>
+        <div class="ov-desc"><strong>"Deficits crowd out investment."</strong> <em>Reality: government deficits increase our collective savings.</em></div>
+      </div>
+      <div class="overview-item">
+        <div class="ov-label">Myth 5</div>
+        <div class="ov-desc"><strong>"Trade deficits mean we're losing."</strong> <em>Reality: a trade deficit is a "stuff surplus" — we receive more than we send.</em></div>
+      </div>
+      <div class="overview-item">
+        <div class="ov-label">Myth 6</div>
+        <div class="ov-desc"><strong>"Social Security is going broke."</strong> <em>Reality: this is a legal constraint, not a financial one. Congress can change it.</em></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 5: OVERVIEW — MMT TOOLKIT ══ -->
+  <div class="slide slide-discussion">
+    <div class="slide-label">Overview</div>
+    <h2>MMT's Prescriptions</h2>
+    <p>MMT's description of how the monetary system works leads to three key prescriptive ideas:</p>
+    <div class="overview-list">
+      <div class="overview-item">
+        <div class="ov-label">Real constraint</div>
+        <div class="ov-desc"><strong>Inflation</strong> — not the deficit — is the true limit on government spending. Ask "how will you resource it?" not "how will you pay for it?"</div>
+      </div>
+      <div class="overview-item">
+        <div class="ov-label">Job Guarantee</div>
+        <div class="ov-desc">A standing government offer to hire any willing worker at a base wage. Replaces <strong>unemployment</strong> as the inflation anchor with <strong>employment</strong>. Automatic stabilizer: expands in recession, contracts in boom.</div>
+      </div>
+      <div class="overview-item">
+        <div class="ov-label">Role of taxes</div>
+        <div class="ov-desc">Taxes don't fund the government — they <strong>create demand for the currency</strong> and <strong>manage inflation</strong>. Tax the rich not because we need their money, but to reduce inequality and remove excess purchasing power.</div>
+      </div>
+      <div class="overview-item">
+        <div class="ov-label">Sectoral balance</div>
+        <div class="ov-desc">Govt deficit = Nongovt surplus. Always. Uncle Sam's red ink is <strong>our black ink</strong>. Surpluses siphon wealth from the private sector.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 6: DISCUSSION ══ -->
+  <div class="slide slide-discussion">
+    <div class="slide-label">Discussion Topics</div>
+    <h2>The Copernican Moment: Does the Government Issue or Use Money?</h2>
+    <p>
+      Kelton describes her own years of resistance to this idea before concluding it was descriptively accurate. Ben Bernanke confirmed it in plain language: when asked how the Fed bailed out banks during the 2008 crisis, he said <strong>"The banks have accounts with the Fed. We just use the computer to mark up the size of the accounts."</strong> No tax revenue required.
+    </p>
+    <p>
+      The operational description is testable. Whether it changes what's politically possible is a separate question — and the one Kelton wants to answer: if we can't run out of money, why have we tolerated decades of crumbling infrastructure, mass unemployment, and unaffordable health care?
+    </p>
+    <div class="discussion-question">
+      <p>Do you buy the core MMT claim — that the government spends first and taxes/borrows after? Where does the argument hold, and where does it break down? And what would it mean if it's true?</p>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 7: DISCUSSION ══ -->
+  <div class="slide slide-discussion">
+    <div class="slide-label">Discussion Topics</div>
+    <h2>Inflation Is the Constraint: Sound Money vs. Managed Money</h2>
+    <p>
+      Kelton says the real limit on government spending is inflation — not money. She is sharply critical of the Fed's current approach: using <strong>deliberate unemployment</strong> (the NAIRU) as the primary anti-inflation tool. Her alternative is a federal job guarantee that anchors prices through employment rather than joblessness.
+    </p>
+    <p>
+      Bitcoin was built on a different premise: because no human institution can responsibly manage the money supply, <strong>the constraint should be baked into the protocol</strong> — 21 million coins, no exceptions. Both frameworks take inflation seriously. They disagree radically about who, or what, should enforce the limit.
+    </p>
+    <div class="discussion-question">
+      <p>Kelton says the inflation constraint is real and must be managed actively. Bitcoin says the only trustworthy constraint is one that can't be managed at all. Who is right — and about what?</p>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 8: DISCUSSION ══ -->
+  <div class="slide slide-discussion">
+    <div class="slide-label">Discussion Topics</div>
+    <h2>The National Debt Is Our National Savings</h2>
+    <p>
+      Kelton's most disorienting reframe: <strong>US Treasuries are just dollars held in savings accounts at the Fed</strong>. The "debt clock" on 43rd Street is a savings clock. Every time the government ran a sustained surplus — 1835, the 1920s, the Clinton years — a severe recession followed. Fiscal surpluses extract dollars from the private sector; sustained extraction breaks private balance sheets.
+    </p>
+    <p>
+      The US could "pay off" the entire national debt tomorrow using nothing more than a keyboard at the Federal Reserve — converting yellow dollars (bonds) back to green dollars (reserves). Japan has already done this with ~50% of its own bonds. No crisis followed.
+    </p>
+    <div class="discussion-question">
+      <p>If US Treasuries are just interest-bearing dollar savings, and the Fed can always make good on them — what's the actual risk that Bitcoin is hedging against? And does reframing the "debt" change how you think about it?</p>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 9: DISCUSSION ══ -->
+  <div class="slide slide-discussion">
+    <div class="slide-label">Discussion Topics</div>
+    <h2>Their Red Ink Is Our Black Ink: Sectoral Balances and Bitcoin</h2>
+    <p>
+      Wynne Godley's sectoral balance identity: <strong>Government deficit = Nongovernment surplus.</strong> Always. By accounting, it cannot be otherwise. Every dollar of "irresponsible government deficit" is a dollar of financial surplus held somewhere in the private sector — including, potentially, Bitcoin wallets.
+    </p>
+    <p>
+      The COVID fiscal response pumped $5+ trillion into the economy. The pandemic bull run pushed Bitcoin from ~$7,000 to ~$69,000. The sectoral balance identity suggests a mechanism: large deficits expand private sector financial wealth, and some of that wealth seeks scarce assets.
+    </p>
+    <div class="discussion-question">
+      <p>If government deficits mechanically increase private sector financial wealth, does that make large fiscal deficits structurally bullish for Bitcoin? And what breaks that relationship?</p>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 10: DISCUSSION ══ -->
+  <div class="slide slide-discussion">
+    <div class="slide-label">Discussion Topics</div>
+    <h2>MMT and Bitcoin as Rival Monetary Theories</h2>
+    <p>
+      MMT is <strong>chartalist</strong>: money derives its value from the state's power to tax. You need dollars to pay federal taxes and avoid penalties — that's what gives them value. Bitcoin proposes a rival theory: value comes from scarcity enforced by protocol and energy expenditure, with <strong>no state required</strong>.
+    </p>
+    <p>
+      El Salvador made Bitcoin legal tender. MMT would predict: this undermined El Salvador's monetary sovereignty and made it a currency <em>user</em> of Bitcoin, with no ability to respond countercyclically to recessions — exactly the trap Greece fell into with the euro.
+    </p>
+    <div class="discussion-question">
+      <p>Are MMT and Bitcoin competing descriptions of the same reality, or competing prescriptions for how money should work? Can you believe both are partly right — and if so, about what?</p>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 11: DISCUSSION ══ -->
+  <div class="slide slide-discussion">
+    <div class="slide-label">Discussion Topics</div>
+    <h2>The Deficits That Actually Matter</h2>
+    <p>
+      Kelton's flip: the fiscal deficit is not a crisis. These are: <strong>21% of American children live in poverty. Infrastructure graded D+. 87 million uninsured or underinsured. $1.7 trillion in student debt. Median retirement savings = $0.</strong>
+    </p>
+    <p>
+      MMT's core claim is that all of these are solvable — the money can always be there. The only question is whether we have the real resources (workers, materials, capacity) and the political will to deploy them. Bitcoin does not address these deficits directly. But if MMT's monetary framework is correct, neither does fiscal austerity.
+    </p>
+    <div class="discussion-question">
+      <p>If the constraint on fixing America's real deficits is political will rather than money — what role, if any, does Bitcoin play in an economy built for the people? Does a successful MMT state increase or decrease Bitcoin demand?</p>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 12: TRIVIA HEADER ══ -->
+  <div class="slide slide-section">
+    <h2>Trivia</h2>
+    <div class="divider"></div>
+    <p>Tap or click the answer box to reveal each answer</p>
+  </div>
+
+  <!-- ══ TRIVIA 1 ══ -->
+  <div class="slide slide-trivia">
+    <div class="trivia-number">1</div>
+    <div class="slide-label">Trivia</div>
+    <h2>What TV show does Kelton invoke to explain why a household and the federal government are "not like the other" — and what's her actual example from the show?</h2>
+    <div class="answer-box" onclick="revealAnswer(this)">
+      <div class="answer-label">Answer</div>
+      <div class="answer-text">Sesame Street — specifically the segment "One of these things is not like the other." Kelton's childhood example: a banana, an orange, a pineapple, and a sandwich on screen. The sandwich is the odd one out. She uses the same logic to say: a household, a business, a state government, and the federal government are not all the same — one of them issues the currency the others use.</div>
+      <div class="answer-hint">*Chapter 1 – Don't Think of a Household</div>
+      <div class="click-prompt">Tap to reveal →</div>
+    </div>
+  </div>
+
+  <!-- ══ TRIVIA 2 ══ -->
+  <div class="slide slide-trivia">
+    <div class="trivia-number">2</div>
+    <div class="slide-label">Trivia</div>
+    <h2>What is Warren Mosler's "business cards" parable, and what does it illustrate about the purpose of taxation?</h2>
+    <div class="answer-box" onclick="revealAnswer(this)">
+      <div class="answer-label">Answer</div>
+      <div class="answer-text">Mosler told his kids he'd pay them in business cards for household chores — but they ignored him since the cards were worthless. So instead he imposed a monthly "tax" of 30 cards, threatening a loss of privileges for non-payment. Suddenly the kids were scrambling to earn his cards. The parable illustrates that taxes don't fund the government — they create demand for the currency. The government imposes taxes to give its otherwise worthless paper value, then spends the currency into existence to let people earn what they owe.</div>
+      <div class="answer-hint">*Chapter 1 – Don't Think of a Household</div>
+      <div class="click-prompt">Tap to reveal →</div>
+    </div>
+  </div>
+
+  <!-- ══ TRIVIA 3 ══ -->
+  <div class="slide slide-trivia">
+    <div class="trivia-number">3</div>
+    <div class="slide-label">Trivia</div>
+    <h2>What is the NAIRU, what does the acronym stand for, and why does Kelton call relying on it "cruel"?</h2>
+    <div class="answer-box" onclick="revealAnswer(this)">
+      <div class="answer-label">Answer</div>
+      <div class="answer-text">Non-Accelerating Inflation Rate of Unemployment — the Fed's estimate of the minimum unemployment level consistent with stable inflation. Kelton calls it cruel because it uses unemployed human beings as the primary weapon against inflation: the Fed deliberately keeps millions out of work as insurance against rising prices. It's also unknowable in advance — as Fed Chair Jerome Powell admitted to AOC in 2019: "Absolutely" — the Fed's estimates had been consistently too high, meaning it had unnecessarily suppressed employment for years.</div>
+      <div class="answer-hint">*Chapter 2 – Think of Inflation</div>
+      <div class="click-prompt">Tap to reveal →</div>
+    </div>
+  </div>
+
+  <!-- ══ TRIVIA 4 ══ -->
+  <div class="slide slide-trivia">
+    <div class="trivia-number">4</div>
+    <div class="slide-label">Trivia</div>
+    <h2>State Wynne Godley's "one-equation model of the world" — both the formula and what it means in plain English.</h2>
+    <div class="answer-box" onclick="revealAnswer(this)">
+      <div class="answer-label">Answer</div>
+      <div class="answer-text">Government financial balance + Nongovernment financial balance = Zero. Equivalently: Government deficit = Nongovernment surplus. In plain English: every dollar the government spends into the economy and doesn't tax back becomes a dollar of financial surplus in the private sector. Uncle Sam's red ink is always our black ink. It's not a theory or an opinion — it's an accounting identity, true under all circumstances, because every payment must come from somewhere and go somewhere.</div>
+      <div class="answer-hint">*Chapter 4 – Their Red Ink Is Our Black Ink</div>
+      <div class="click-prompt">Tap to reveal →</div>
+    </div>
+  </div>
+
+  <!-- ══ TRIVIA 5 ══ -->
+  <div class="slide slide-trivia">
+    <div class="trivia-number">5</div>
+    <div class="slide-label">Trivia</div>
+    <h2>Why does Kelton argue that the Clinton budget surpluses (1998–2001) were dangerous rather than a crowning achievement — and what happened next?</h2>
+    <div class="answer-box" onclick="revealAnswer(this)">
+      <div class="answer-label">Answer</div>
+      <div class="answer-text">By Godley's identity, a government surplus is a private sector deficit of equal size. The Clinton surpluses extracted dollars from households and businesses, who sustained their spending only by taking on private debt — fueling a borrowing bubble. Godley publicly predicted at the time that the surpluses would undermine the recovery and force the budget back into deficit. He was right: the dot-com recession began in 2001, surpluses vanished, and the accumulated private debt laid the groundwork for the 2008 financial crisis. Kelton notes this pattern appears in every historical episode of sustained US budget surplus.</div>
+      <div class="answer-hint">*Chapter 4 – Their Red Ink Is Our Black Ink</div>
+      <div class="click-prompt">Tap to reveal →</div>
+    </div>
+  </div>
+
+  <!-- ══ TRIVIA 6 ══ -->
+  <div class="slide slide-trivia">
+    <div class="trivia-number">6</div>
+    <div class="slide-label">Trivia</div>
+    <h2>What is "functional finance," who coined the term, and what was its core principle?</h2>
+    <div class="answer-box" onclick="revealAnswer(this)">
+      <div class="answer-label">Answer</div>
+      <div class="answer-text">Coined by economist Abba P. Lerner, a contemporary of Keynes. The core principle: judge fiscal policy by how it functions in the real economy — does it deliver full employment and price stability? — rather than by whether it balances the books. The deficit number is beside the point. If the budget needs to run a deficit for decades to sustain full employment without inflation, that deficit is responsible, not reckless. Kelton describes functional finance as a crucial precursor to MMT — the idea that real economic outcomes, not accounting outcomes, are what matter.</div>
+      <div class="answer-hint">*Chapter 2 – Think of Inflation</div>
+      <div class="click-prompt">Tap to reveal →</div>
+    </div>
+  </div>
+
+  <!-- ══ TRIVIA 7 ══ -->
+  <div class="slide slide-trivia">
+    <div class="trivia-number">7</div>
+    <div class="slide-label">Trivia</div>
+    <h2>Why can the US never face a Greek-style debt crisis — and what specific institutional choice did Greece make that transformed it from a currency issuer into a currency user?</h2>
+    <div class="answer-box" onclick="revealAnswer(this)">
+      <div class="answer-label">Answer</div>
+      <div class="answer-text">Greece abandoned the drachma in 2001 to join the eurozone — giving up the power to issue currency. From that point, Greece had to borrow euros it could not manufacture, just like a household. Bond markets could demand punishing interest rates because Greece could literally run out of money. The US issues the dollar itself; the Fed can always clear any dollar-denominated payment obligation by crediting bank accounts. Warren Buffett said it plainly: "The US cannot have a debt crisis as long as we keep issuing our notes in our own currency." The US could only default voluntarily — a political choice, never an economic necessity.</div>
+      <div class="answer-hint">*Chapter 3 – The National Debt (That Isn't)</div>
+      <div class="click-prompt">Tap to reveal →</div>
+    </div>
+  </div>
+
+  <!-- ══ TRIVIA 8 ══ -->
+  <div class="slide slide-trivia">
+    <div class="trivia-number">8</div>
+    <div class="slide-label">Trivia</div>
+    <h2>During World War II, the US deficit exceeded 25% of GDP. What did the Federal Reserve do to interest rates — and what does that prove about the relationship between deficits and borrowing costs?</h2>
+    <div class="answer-box" onclick="revealAnswer(this)">
+      <div class="answer-label">Answer</div>
+      <div class="answer-text">The Fed pegged short-term Treasury bill rates at 0.375% and capped long-term bond rates at 2.5% — and held them there throughout the war, even as the national debt tripled from $79 billion to $260 billion. Interest rates trended lower, not higher, despite exploding deficits. This directly falsifies the "crowding out" story, which predicts that large deficits must force borrowing costs up. It proves that the interest rate on government debt is a policy variable, not a market price determined by competition for scarce savings. The Fed can hold rates down any time it chooses.</div>
+      <div class="answer-hint">*Chapter 4 – Their Red Ink Is Our Black Ink</div>
+      <div class="click-prompt">Tap to reveal →</div>
+    </div>
+  </div>
+
+  <!-- ══ TRIVIA 9 ══ -->
+  <div class="slide slide-trivia">
+    <div class="trivia-number">9</div>
+    <div class="slide-label">Trivia</div>
+    <h2>What structural mistake did FDR make when designing Social Security — and why does it keep the program perpetually "in crisis" despite the federal government having no financial constraint?</h2>
+    <div class="answer-box" onclick="revealAnswer(this)">
+      <div class="answer-label">Answer</div>
+      <div class="answer-text">FDR tied Social Security to a dedicated payroll tax and created a trust fund, hoping this would make the program feel self-supporting and harder to cut. But the trust fund structure created the illusion that Social Security can "run out of money." Federal law says the program must cut benefits when trust fund balances hit zero — not because the government can't afford to pay, but because Congress wrote a rule saying it won't pay if the ledger reaches zero. Compare Medicare Part B (SMI), which has language saying it will always be financed from general revenues: actuaries rate it solvent "to infinity and beyond." Same government, same financial capacity — the only difference is the legal language Congress chose.</div>
+      <div class="answer-hint">*Chapter 6 – You're Entitled!</div>
+      <div class="click-prompt">Tap to reveal →</div>
+    </div>
+  </div>
+
+  <!-- ══ TRIVIA 10 ══ -->
+  <div class="slide slide-trivia">
+    <div class="trivia-number">10</div>
+    <div class="slide-label">Trivia</div>
+    <h2>What trick did Kelton play on members of the Senate Budget Committee using a "magic wand" — and what did their reaction reveal?</h2>
+    <div class="answer-box" onclick="revealAnswer(this)">
+      <div class="answer-label">Answer</div>
+      <div class="answer-text">She asked each senator: "Would you wave a magic wand to eliminate the entire national debt?" Every one said yes immediately. Then she asked: "Would you wave a wand to eliminate all US Treasury bonds?" They all hesitated, then refused. Kelton then pointed out she had asked the same question twice: the national debt IS US Treasury bonds. They love Treasuries as private savings assets, but hate the same securities when labeled "the national debt." Not one member of the Senate Budget Committee caught the trick — revealing that deficit fear is emotional and rhetorical, not economic. As Senator Enzi later admitted, he wanted deficit numbers written out in long form ($27,300,000,000,000) to better "stoke the right emotional response."</div>
+      <div class="answer-hint">*Chapter 3 – The National Debt (That Isn't)</div>
+      <div class="click-prompt">Tap to reveal →</div>
+    </div>
+  </div>
+
+  <!-- ══ TRIVIA 11 ══ -->
+  <div class="slide slide-trivia">
+    <div class="trivia-number">11</div>
+    <div class="slide-label">Trivia</div>
+    <h2>Name the six "deficits that actually matter" that Kelton identifies in Chapter 7 — the ones the book says we should be discussing instead of the fiscal deficit.</h2>
+    <div class="answer-box" onclick="revealAnswer(this)">
+      <div class="answer-label">Answer</div>
+      <div class="answer-text">① Good jobs deficit — stagnant wages, gig economy, disappeared manufacturing; ② Savings deficit — median retirement savings of $0, collapse of defined-benefit pensions; ③ Health-care deficit — 87 million uninsured or underinsured, lowest life expectancy among peers; ④ Education deficit — $1.7 trillion in student debt, K–12 funding tied to property taxes; ⑤ Infrastructure deficit — ASCE grades it D+, 2,170 high-hazard dams; ⑥ Climate deficit — the ultimate real-resource constraint.</div>
+      <div class="answer-hint">*Chapter 7 – The Deficits That Matter</div>
+      <div class="click-prompt">Tap to reveal →</div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE NEXT BOOK ══ -->
+  <div class="slide slide-next">
+    <h2>Next Book Club — July 2026</h2>
+    <h1>TBD</h1>
+    <div class="divider"></div>
+    <p>Bitcoin District Book Club</p>
+  </div>
+
+</div>
+
+<!-- ─── NAV ─── -->
+<div class="nav">
+  <button id="prevBtn" onclick="navigate(-1)" disabled>&#8592;</button>
+  <button id="nextBtn" onclick="navigate(1)">&#8594;</button>
+</div>
+<div class="progress" id="progress"></div>
+<div class="swipe-hint" id="swipeHint">swipe to navigate</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  let current = 0;
+
+  function showSlide(n) {
+    slides[current].classList.remove('active');
+    slides[current].scrollTop = 0;
+    current = Math.max(0, Math.min(n, slides.length - 1));
+    slides[current].classList.add('active');
+    document.getElementById('prevBtn').disabled = current === 0;
+    document.getElementById('nextBtn').disabled = current === slides.length - 1;
+    document.getElementById('slideCounter').textContent = (current + 1) + ' / ' + slides.length;
+    if (n !== 0) {
+      const hint = document.getElementById('swipeHint');
+      if (hint) hint.style.opacity = '0';
+    }
+  }
+
+  function navigate(dir) {
+    showSlide(current + dir);
+  }
+
+  function revealAnswer(box) {
+    box.classList.add('revealed-box');
+    box.querySelector('.answer-text').classList.add('revealed');
+    const hint = box.querySelector('.answer-hint');
+    if (hint) hint.classList.add('revealed');
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') navigate(1);
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') navigate(-1);
+  });
+
+  let touchStartX = 0;
+  let touchStartY = 0;
+  document.addEventListener('touchstart', e => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+  document.addEventListener('touchend', e => {
+    const diffX = touchStartX - e.changedTouches[0].clientX;
+    const diffY = touchStartY - e.changedTouches[0].clientY;
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
+      navigate(diffX > 0 ? 1 : -1);
+    }
+  }, { passive: true });
+
+  showSlide(0);
+</script>
+</body>
+</html>
