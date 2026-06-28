@@ -408,6 +408,47 @@ function getFooterLinks(meetup: Meetup): FooterLinkItem[] {
     flex-shrink: 0;
   }
 
+  :global(.dark) .meetups__card {
+    background: var(--color-surface) !important;
+    border-color: var(--color-border) !important;
+    color: var(--color-text);
+    box-shadow: var(--shadow-card);
+  }
+
+  :global(.dark) .meetups__card:hover {
+    border-color: rgba(255, 173, 59, 0.32);
+    box-shadow: 0 18px 38px rgba(0, 0, 0, 0.34);
+  }
+
+  :global(.dark) .meetups__logoLink:hover {
+    background-color: rgba(255, 255, 255, 0.06);
+  }
+
+  :global(.dark) .meetups__logoPlaceholder {
+    color: var(--color-text-soft);
+  }
+
+  :global(.dark) .meetups__cardTitle {
+    color: var(--color-heading) !important;
+  }
+
+  :global(.dark) .meetups__city,
+  :global(.dark) .meetups__description {
+    color: var(--color-text-muted) !important;
+  }
+
+  :global(.dark) .meetups__descriptionWrap.has-overflow .meetups__expandBtn,
+  :global(.dark) .meetups__descriptionWrap.is-expanded .meetups__expandBtn,
+  :global(.dark) .meetups__footerLink {
+    color: var(--color-brand) !important;
+  }
+
+  :global(.dark) .meetups__descriptionWrap .meetups__expandBtn:hover,
+  :global(.dark) .meetups__footerLink:hover {
+    background-color: rgba(255, 173, 59, 0.12);
+    color: var(--color-brand) !important;
+  }
+
   @media (max-width: 640px) {
     .meetups__cardBody {
       display: none;
