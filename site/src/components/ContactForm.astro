@@ -401,6 +401,45 @@ const humanizeFieldName = (fieldName: string): string => {
     text-decoration: underline;
   }
 
+  :global(.dark) .form-input {
+    background-color: var(--color-surface) !important;
+    border-color: var(--color-border) !important;
+    color: var(--color-text) !important;
+  }
+
+  :global(.dark) .form-input:focus {
+    border-color: var(--color-brand) !important;
+    box-shadow: 0 0 0 3px rgba(255, 173, 59, 0.14);
+  }
+
+  :global(.dark) .form-input::placeholder {
+    color: var(--color-text-muted) !important;
+    opacity: 1;
+  }
+
+  :global(.dark) .submit-btn {
+    background-color: var(--color-brand);
+    border-color: var(--color-brand);
+    color: #0e0535;
+  }
+
+  :global(.dark) .submit-btn:hover:not(:disabled) {
+    background-color: var(--color-brand-hover);
+    border-color: var(--color-brand-hover);
+  }
+
+  :global(.dark) .form-description {
+    color: var(--color-text-muted);
+  }
+
+  :global(.dark) .form-description :global(a) {
+    color: var(--color-brand);
+  }
+
+  :global(.dark) .form-description :global(a:hover) {
+    color: var(--color-brand-hover);
+  }
+
   /* Responsive design */
   @media (max-width: 640px) {
     .form-grid {
