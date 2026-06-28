@@ -65,6 +65,7 @@ const structuredData = {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
+    <meta name="color-scheme" content="light dark" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -99,6 +100,24 @@ const structuredData = {
     
     <!-- Structured Data -->
     <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
+    <script is:inline>
+      (() => {
+        const storageKey = 'bd-theme';
+        const root = document.documentElement;
+
+        try {
+          const savedTheme = localStorage.getItem(storageKey);
+          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          const useDark = savedTheme ? savedTheme === 'dark' : prefersDark;
+
+          root.classList.toggle('dark', useDark);
+          root.dataset.theme = useDark ? 'dark' : 'light';
+          root.style.colorScheme = useDark ? 'dark' : 'light';
+        } catch {
+          root.dataset.theme = 'light';
+        }
+      })();
+    </script>
   </head>
   <body>
     <nav>
@@ -136,6 +155,32 @@ const structuredData = {
         </ul>
         
         <div class="nav-right">
+          <button
+            class="theme-toggle"
+            type="button"
+            data-theme-toggle
+            aria-label="Switch to dark mode"
+            aria-pressed="false"
+          >
+            <span class="theme-toggle-icon theme-toggle-icon-sun" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="4"></circle>
+                <path d="M12 2v2"></path>
+                <path d="M12 20v2"></path>
+                <path d="m4.93 4.93 1.41 1.41"></path>
+                <path d="m17.66 17.66 1.41 1.41"></path>
+                <path d="M2 12h2"></path>
+                <path d="M20 12h2"></path>
+                <path d="m6.34 17.66-1.41 1.41"></path>
+                <path d="m19.07 4.93-1.41 1.41"></path>
+              </svg>
+            </span>
+            <span class="theme-toggle-icon theme-toggle-icon-moon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+              </svg>
+            </span>
+          </button>
           <div class="social-links">
             {xUrl && (
               <a href={xUrl} target="_blank" rel="noopener noreferrer" aria-label="X (Twitter)">
@@ -195,6 +240,32 @@ const structuredData = {
         </ul>
         
         <div class="mobile-social-links">
+          <button
+            class="theme-toggle"
+            type="button"
+            data-theme-toggle
+            aria-label="Switch to dark mode"
+            aria-pressed="false"
+          >
+            <span class="theme-toggle-icon theme-toggle-icon-sun" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="4"></circle>
+                <path d="M12 2v2"></path>
+                <path d="M12 20v2"></path>
+                <path d="m4.93 4.93 1.41 1.41"></path>
+                <path d="m17.66 17.66 1.41 1.41"></path>
+                <path d="M2 12h2"></path>
+                <path d="M20 12h2"></path>
+                <path d="m6.34 17.66-1.41 1.41"></path>
+                <path d="m19.07 4.93-1.41 1.41"></path>
+              </svg>
+            </span>
+            <span class="theme-toggle-icon theme-toggle-icon-moon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+              </svg>
+            </span>
+          </button>
           {xUrl && (
             <a href={xUrl} target="_blank" rel="noopener noreferrer" aria-label="X (Twitter)">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -219,6 +290,43 @@ const structuredData = {
     </nav>
 
     <script>
+      const storageKey = 'bd-theme';
+      const root = document.documentElement;
+      const themeToggles = document.querySelectorAll<HTMLButtonElement>('[data-theme-toggle]');
+
+      function setTheme(theme: 'light' | 'dark', shouldPersist = true) {
+        const useDark = theme === 'dark';
+
+        root.classList.toggle('dark', useDark);
+        root.dataset.theme = theme;
+        root.style.colorScheme = theme;
+
+        if (shouldPersist) {
+          try {
+            localStorage.setItem(storageKey, theme);
+          } catch {
+            // Keep the visual theme change even when storage is unavailable.
+          }
+        }
+
+        themeToggles.forEach((toggle) => {
+          toggle.setAttribute('aria-pressed', String(useDark));
+          toggle.setAttribute('aria-label', useDark ? 'Switch to light mode' : 'Switch to dark mode');
+        });
+      }
+
+      function getCurrentTheme(): 'light' | 'dark' {
+        return root.classList.contains('dark') ? 'dark' : 'light';
+      }
+
+      themeToggles.forEach((toggle) => {
+        toggle.addEventListener('click', () => {
+          setTheme(getCurrentTheme() === 'dark' ? 'light' : 'dark');
+        });
+      });
+
+      setTheme(getCurrentTheme(), false);
+
       // Mobile menu toggle functionality
       const mobileMenuButton = document.querySelector('.mobile-menu-button');
       const mobileMenu = document.querySelector('.mobile-menu');
