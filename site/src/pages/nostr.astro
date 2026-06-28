@@ -403,6 +403,61 @@ const seo = {
     flex-shrink: 0;
   }
 
+  :global(.dark) .infrastructure-card {
+    background: var(--color-surface) !important;
+    border-color: var(--color-border) !important;
+    box-shadow: var(--shadow-card);
+  }
+
+  :global(.dark) .infrastructure-label {
+    color: var(--color-text-soft) !important;
+  }
+
+  :global(.dark) .infrastructure-header h2,
+  :global(.dark) .infrastructure-item-header h3,
+  :global(.dark) .nostr-profiles-section h2,
+  :global(.dark) .what-is-nostr-section h2,
+  :global(.dark) .nostr-resources-section h2 {
+    color: var(--color-heading) !important;
+  }
+
+  :global(.dark) .infrastructure-description,
+  :global(.dark) .infrastructure-item-header p,
+  :global(.dark) .infrastructure-note,
+  :global(.dark) .profiles-description {
+    color: var(--color-text-muted) !important;
+  }
+
+  :global(.dark) .url-display {
+    background: var(--color-surface-soft) !important;
+    border-color: var(--color-border) !important;
+  }
+
+  :global(.dark) .url-display code {
+    background: transparent !important;
+    color: var(--color-heading) !important;
+  }
+
+  :global(.dark) .copy-button {
+    background: var(--color-brand);
+    color: #0e0535;
+  }
+
+  :global(.dark) .copy-button:hover {
+    background: var(--color-brand-hover);
+  }
+
+  :global(.dark) .resource-link {
+    background: var(--color-surface) !important;
+    border-color: var(--color-border) !important;
+    color: var(--color-heading) !important;
+  }
+
+  :global(.dark) .resource-link:hover {
+    background: var(--color-surface-soft) !important;
+    border-color: var(--color-brand) !important;
+  }
+
   @media (max-width: 640px) {
     .nostr-page {
       padding: 2.25rem 1rem;
