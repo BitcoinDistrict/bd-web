@@ -99,6 +99,17 @@ const { platforms } = Astro.props as Props;
     outline-offset: 2px;
   }
 
+  :global(.dark) .podcast-platforms {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+
+  :global(.dark) .podcast-platforms__button {
+    background: #fff;
+    border-color: rgba(255, 255, 255, 0.16);
+  }
+
   @media (max-width: 640px) {
     .podcast-platforms {
       margin-bottom: 1.5rem;
