@@ -177,6 +177,32 @@ const bgClass = background === 'gray' ? 'bg-gray-50' : 'bg-white';
     transform: translateX(4px);
   }
 
+  :global(.dark) .luma-calendar-card,
+  :global(.dark) .ics-calendar-card {
+    background: var(--color-surface) !important;
+    border-color: var(--color-border) !important;
+    box-shadow: var(--shadow-card);
+  }
+
+  :global(.dark) .luma-calendar-card:hover,
+  :global(.dark) .ics-calendar-card:hover {
+    border-color: var(--color-brand) !important;
+    box-shadow: 0 16px 34px rgba(0, 0, 0, 0.3);
+  }
+
+  :global(.dark) .calendar-icon-wrap {
+    background: var(--color-surface-soft) !important;
+    color: var(--color-brand);
+  }
+
+  :global(.dark) .calendar-title {
+    color: var(--color-heading) !important;
+  }
+
+  :global(.dark) .calendar-description {
+    color: var(--color-text-muted) !important;
+  }
+
   @media (max-width: 768px) {
     .events-section {
       padding: 3rem 1rem;

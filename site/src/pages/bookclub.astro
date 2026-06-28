@@ -593,6 +593,62 @@ const seo = {
     font-size: 1.1rem;
   }
 
+  :global(.dark) .books-list h2 {
+    color: var(--color-heading) !important;
+  }
+
+  :global(.dark) .table-container {
+    background: var(--color-surface) !important;
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-card);
+  }
+
+  :global(.dark) table {
+    background: var(--color-surface) !important;
+  }
+
+  :global(.dark) thead {
+    background: var(--color-surface-soft) !important;
+    border-bottom-color: var(--color-border) !important;
+  }
+
+  :global(.dark) th,
+  :global(.dark) td,
+  :global(.dark) .date-cell {
+    color: var(--color-text-muted) !important;
+  }
+
+  :global(.dark) th.sortable button {
+    color: inherit !important;
+  }
+
+  :global(.dark) th.sortable button:hover,
+  :global(.dark) th.sortable button.active {
+    color: var(--color-brand) !important;
+  }
+
+  :global(.dark) tbody tr {
+    border-bottom-color: var(--color-border) !important;
+  }
+
+  :global(.dark) tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.04) !important;
+  }
+
+  :global(.dark) .book-title {
+    color: var(--color-heading) !important;
+  }
+
+  :global(.dark) .purchase-link,
+  :global(.dark) .slides-link {
+    color: var(--color-brand) !important;
+  }
+
+  :global(.dark) .purchase-link:hover,
+  :global(.dark) .slides-link:hover {
+    background-color: rgba(255, 173, 59, 0.12);
+  }
+
   @media (max-width: 768px) {
     .bookclub-page {
       padding: 2rem 1rem;

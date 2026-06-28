@@ -406,6 +406,55 @@ const seo = {
     flex-shrink: 0;
   }
 
+  :global(.dark) .event-card {
+    background: var(--color-surface) !important;
+    border-color: var(--color-border) !important;
+    box-shadow: var(--shadow-card);
+  }
+
+  :global(.dark) .event-card:hover {
+    box-shadow: 0 22px 46px rgba(0, 0, 0, 0.36);
+  }
+
+  :global(.dark) .event-image-link {
+    background: var(--color-surface-soft) !important;
+  }
+
+  :global(.dark) .event-title,
+  :global(.dark) .venue-name {
+    color: var(--color-heading) !important;
+  }
+
+  :global(.dark) .event-meta-item,
+  :global(.dark) .venue-address,
+  :global(.dark) .event-description,
+  :global(.dark) .event-description :global(*) {
+    color: var(--color-text-muted) !important;
+  }
+
+  :global(.dark) .event-title a {
+    color: inherit !important;
+  }
+
+  :global(.dark) .event-title a:hover {
+    color: #9aa8ff !important;
+  }
+
+  :global(.dark) .btn-primary {
+    color: #ffffff !important;
+  }
+
+  :global(.dark) .btn-secondary {
+    background: transparent;
+    color: #a8b4ff !important;
+    border-color: #7d90ff;
+  }
+
+  :global(.dark) .btn-secondary:hover {
+    background: #667eea;
+    color: #ffffff !important;
+  }
+
   @keyframes fadeIn {
     from {
       opacity: 0;
